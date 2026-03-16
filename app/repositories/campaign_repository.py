@@ -4,7 +4,7 @@ from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
 
-from app.models.campaign import Campaign
+from app.models.db_models import Campaign
 from app.utils.csv_loader import read_ads_rows
 
 
