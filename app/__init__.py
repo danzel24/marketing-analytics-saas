@@ -1,0 +1,1 @@
+"""FastAPI SaaS-ready backend package."""
