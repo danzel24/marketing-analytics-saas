@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 pydantic
 jinja2
+sqlmodel
