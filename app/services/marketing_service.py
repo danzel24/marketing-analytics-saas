@@ -1509,10 +1509,29 @@ class MarketingService:
             paid_rows.sort(key=lambda x: float(x["revenue"]), reverse=True)
         return paid_rows[: max(int(top_n), 0)]
 
+    @staticmethod
+    def _campaign_row_counts_toward_loss_kpi(row: dict[str, object]) -> bool:
+        """
+        True if this campaign row should add to the portfolio loss KPI.
+
+        Uses the same economic definition as the table: ``contribution_profit`` (marže × tržby − náklady).
+        Includes ``loss`` and ``at_risk`` rows with negative contribution (e.g. ROAS pod bodem zvratu
+        ale stále v „buffer“ pásmu 0.9–1.1× BE). Excludes organic and insufficient_data.
+        """
+        if str(row.get("source", "paid")) == "organic":
+            return False
+        if str(row.get("status", "")) == "insufficient_data":
+            return False
+        contribution_profit = float(row.get("contribution_profit", row.get("profit", 0)) or 0)
+        return contribution_profit < 0
+
     def loss_summary(self, *, client_id: int, days: int = 30) -> dict[str, float | int]:
         """
-        Same time window and status rules as the campaign table: sums |contribution_profit|
-        for paid campaigns in ``loss`` (ROAS clearly below break-even band).
+        Same time window and campaign rows as the table (``top_campaigns_db``).
+
+        Sums ``|contribution_profit|`` for paid campaigns with **negative** contribution in the window.
+        This matches rows that are economically below break-even, including ``at_risk`` („Na hraně“)
+        when profit after margin is still negative — not only ``loss`` (ROAS < 0.9× BE).
         """
         self._db_requirements()
         cid = require_positive_client_id(client_id)
@@ -1521,13 +1540,9 @@ class MarketingService:
         loss_count = 0
 
         for c in rows:
-            if str(c.get("source", "paid")) == "organic":
-                continue
-            if str(c.get("status", "")) != "loss":
+            if not MarketingService._campaign_row_counts_toward_loss_kpi(c):
                 continue
             contribution_profit = float(c.get("contribution_profit", c.get("profit", 0)) or 0)
-            if contribution_profit >= 0:
-                continue
             total_loss += abs(contribution_profit)
             loss_count += 1
 
@@ -1535,7 +1550,11 @@ class MarketingService:
             "total_loss": round(total_loss, 2),
             "loss_count": loss_count,
             "potential_gain": round(total_loss, 2),
-            "message": "Všechny kampaně jsou nad bodem zvratu" if loss_count == 0 else "",
+            "message": (
+                "Všechny placené kampaně jsou v tomto období nad bodem zvratu (nezáporný příspěvek po marži)."
+                if loss_count == 0
+                else "Alespoň jedna placená kampaň je pod bodem zvratu — viz tabulka kampaní."
+            ),
         }
 
     def _trust_meta(self, *, client_id: int, days: int) -> dict[str, object]:
