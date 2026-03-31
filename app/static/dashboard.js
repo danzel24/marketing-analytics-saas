@@ -391,7 +391,7 @@ function setChartsEmptyState(isEmpty) {
 
   if (isEmpty) {
     destroyCharts();
-    msg.textContent = "Nahrajte data nebo připojte reklamní účet";
+    msg.textContent = "Nahrajte CSV — zobrazíme trendy v čase.";
     msg.classList.remove("hidden");
   } else {
     msg.classList.add("hidden");
@@ -650,8 +650,8 @@ function renderKpis(overview, lossSummary) {
   const lossCount = toFiniteNumber(lossSummary?.loss_count);
   els.kpiLoss.style.color = "";
   if (lossCount > 0) {
-    els.kpiLoss.textContent = `−${absMoney(totalLoss)}`;
-    els.kpiLossMeta.textContent = `${lossCount} kampan${lossCount === 1 ? "ě" : lossCount < 5 ? "ě" : "í"} prodělává`;
+    els.kpiLoss.textContent = absMoney(totalLoss);
+    els.kpiLossMeta.textContent = `${lossCount} kampan${lossCount === 1 ? "ě" : lossCount < 5 ? "ě" : "í"} pod bodem zvratu`;
   } else {
     els.kpiLoss.textContent = "0 Kč";
     els.kpiLoss.style.color = "var(--green)";
@@ -660,13 +660,13 @@ function renderKpis(overview, lossSummary) {
 
   const trustEl = els.kpiTrustMicrocopy || document.getElementById("kpiTrustMicrocopy");
   if (trustEl) {
-    trustEl.textContent = `Data odpovídají reálnému výkonu kampaní za posledních ${selectedDays} dní.`;
+    trustEl.textContent = `Výkon za posledních ${selectedDays} dní podle nahraných dat.`;
   }
 
   const partialEl = document.getElementById("partialDataNote");
   if (partialEl) {
     if (overview.has_partial_data === true) {
-      partialEl.textContent = "Poslední den může obsahovat neúplná data.";
+      partialEl.textContent = "Poslední den může být neúplný.";
       partialEl.classList.remove("hidden");
     } else {
       partialEl.textContent = "";
@@ -710,22 +710,36 @@ function renderPeriodComparison(overview) {
   wrap.innerHTML = `<div class="kpi-period-comparison card">${rows.join("")}</div>`;
 }
 
+function dataReliabilityTip(tier) {
+  const t = String(tier || "");
+  if (t === "high") {
+    return "Vyšší: více dat v období, stabilnější vzorek pro vyhodnocení.";
+  }
+  if (t === "medium") {
+    return "Střední: použitelný odhad, výsledky berte jako orientační.";
+  }
+  return "Nižší: málo dat nebo krátké období, slabší signál.";
+}
+
 function renderDataReliabilityBadge(overview) {
   const el = document.getElementById("dataReliabilityBadge");
   if (!el) return;
   const label = String(overview.data_reliability_label_cs || "").trim();
   if (!label) {
     el.classList.add("hidden");
-    el.textContent = "";
+    el.innerHTML = "";
     return;
   }
-  el.classList.remove("hidden");
-  el.textContent = `Spolehlivost dat: ${label}`;
   el.classList.remove("data-reliability-badge--high", "data-reliability-badge--med", "data-reliability-badge--low");
   const tier = String(overview.data_reliability || "");
   if (tier === "high") el.classList.add("data-reliability-badge--high");
   else if (tier === "medium") el.classList.add("data-reliability-badge--med");
   else el.classList.add("data-reliability-badge--low");
+
+  const tip = dataReliabilityTip(tier);
+  const tipEsc = escapeHtml(tip);
+  el.classList.remove("hidden");
+  el.innerHTML = `Spolehlivost dat: ${escapeHtml(label)} <span class="tooltip" data-tip="${tipEsc}">?</span>`;
 }
 
 function setDashboardLoading(on) {
@@ -772,7 +786,7 @@ function renderTopCampaigns(topCampaigns, breakEven) {
   els.tbody.innerHTML = "";
   if (!topCampaigns || topCampaigns.length === 0) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="10" class="empty-row">Zatím nemáte nahraná data. Nahrajte CSV — zobrazíme výkon kampaní, ROAS a doporučení. Propojení reklamního účtu můžete doplnit později.</td>`;
+    tr.innerHTML = `<td colspan="10" class="empty-row">Zatím nemáte nahraná data. Nahrajte CSV pro přehled kampaní a ROAS.</td>`;
     els.tbody.appendChild(tr);
     return;
   }
@@ -842,7 +856,7 @@ function renderInsightsFromApi(lines) {
   if (!safe.length) {
     const li = document.createElement("li");
     li.className = "insight-item";
-    li.textContent = "Žádné další poznámky.";
+    li.textContent = "Zatím bez poznámek.";
     els.insightsList.appendChild(li);
     return;
   }
@@ -1111,9 +1125,9 @@ async function loadDashboard() {
     renderInsightsFromApi(insightsData.insights || []);
 
     const sub = document.getElementById("insightsSubtitle");
-    if (sub) sub.textContent = `Trend za ${selectedDays} dní`;
+    if (sub) sub.textContent = `Posledních ${selectedDays} dní`;
     if (!Array.isArray(campaignsForSignals) || campaignsForSignals.length === 0) {
-      setStatus("Zatím nemáte nahraná data — nahrajte CSV pro přehled výkonu.", "info");
+      setStatus("Nahrajte CSV pro přehled výkonu.", "info");
       return;
     }
     if (isEmptyMetrics) {
@@ -1177,7 +1191,7 @@ function resetDashboardUi() {
   }
   const relReset = document.getElementById("dataReliabilityBadge");
   if (relReset) {
-    relReset.textContent = "";
+    relReset.innerHTML = "";
     relReset.classList.add("hidden");
   }
   const emptyBanner = document.getElementById("dashboardEmptyBanner");

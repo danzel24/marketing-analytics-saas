@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Marketingový přehled — ROAS, bod zvratu a doporučení pro kampaně. Import CSV, přehledné dashboardy."
+    />
+    <title>Marketingový přehled — rychlá rozhodnutí o kampaních</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body class="landing-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <div class="brand">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Demo &amp; portfolio</div>
+          </div>
+        </div>
+      </div>
+      <nav class="topbar__nav" aria-label="Rychlé odkazy">
+        <a class="topbar__nav-link" href="/login">Přihlásit se</a>
+        <a class="topbar__nav-link topbar__nav-link--emphasis" href="/register">Registrovat se</a>
+      </nav>
+    </header>
+
+    <main class="landing-main">
+      <section class="landing-hero">
+        <h1 class="landing-hero__title">Marketingový přehled pro rychlé rozhodování o kampaních</h1>
+        <p class="landing-hero__lead">
+          Spojte tržby, náklady a marži v jednom přehledu. Uvidíte ROAS, bod zvratu a konkrétní tipy, co škálovat a kde
+          šetřit — bez složitých tabulek.
+        </p>
+        <div class="landing-cta-row" role="group" aria-label="Začít používat">
+          <a class="btn btn--primary" href="/register">Registrovat se</a>
+          <a class="btn landing-btn-outline" href="/login">Přihlásit se</a>
+          <a class="landing-cta-tertiary" href="/dashboard">Vyzkoušet přehled</a>
+        </div>
+        <p class="landing-hero__note">Účet je potřeba pro vlastní data; přehled bez přihlášení přesměruje na přihlášení.</p>
+      </section>
+
+      <section class="landing-section" aria-labelledby="landing-benefits-heading">
+        <h2 id="landing-benefits-heading" class="landing-section__title">Co umí</h2>
+        <ul class="landing-benefits">
+          <li class="landing-benefits__item card">
+            <h3 class="landing-benefits__heading">Přehled výkonu kampaní</h3>
+            <p class="landing-benefits__text">Tržby, náklady a čistý zisk z reklamy v jednom dashboardu.</p>
+          </li>
+          <li class="landing-benefits__item card">
+            <h3 class="landing-benefits__heading">ROAS a bod zvratu</h3>
+            <p class="landing-benefits__text">Vidíte, jestli kampaně drží nad hranou ziskovosti.</p>
+          </li>
+          <li class="landing-benefits__item card">
+            <h3 class="landing-benefits__heading">Doporučení k akci</h3>
+            <p class="landing-benefits__text">Návrhy, co škálovat a kde omezit rozpočet podle dat.</p>
+          </li>
+          <li class="landing-benefits__item card">
+            <h3 class="landing-benefits__heading">Import přes CSV</h3>
+            <p class="landing-benefits__text">Nahrajte datum, kampaň, tržby a náklady — bez integrace navíc.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="landing-section landing-section--how" aria-labelledby="landing-how-heading">
+        <h2 id="landing-how-heading" class="landing-section__title">Jak to funguje</h2>
+        <ol class="landing-steps">
+          <li class="landing-steps__item">
+            <span class="landing-steps__num">1</span>
+            <div>
+              <strong>Založte účet</strong> a nahrajte CSV s výkonem kampaní.
+            </div>
+          </li>
+          <li class="landing-steps__item">
+            <span class="landing-steps__num">2</span>
+            <div>
+              <strong>Otevřete přehled</strong> — KPI, grafy a tabulka rozhodnutí podle kampaní.
+            </div>
+          </li>
+          <li class="landing-steps__item">
+            <span class="landing-steps__num">3</span>
+            <div>
+              <strong>Rozhodněte se</strong> podle ROAS, ztrát a doporučení v aplikaci.
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <footer class="landing-footer">
+        <p class="landing-footer__text">Demo a portfolio: FastAPI, multi-tenant, import CSV.</p>
+        <div class="landing-footer__links">
+          <a href="/login">Přihlásit se</a>
+          <span class="landing-footer__sep" aria-hidden="true">·</span>
+          <a href="/register">Registrace</a>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

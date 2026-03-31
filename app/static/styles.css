@@ -654,6 +654,8 @@ body {
 }
 
 .data-reliability-badge {
+  display: inline-flex;
+  align-items: center;
   margin-right: 12px;
   padding: 4px 10px;
   border-radius: 999px;
@@ -680,6 +682,12 @@ body {
   color: #fecaca;
   background: rgba(239, 68, 68, 0.08);
   border-color: rgba(239, 68, 68, 0.25);
+}
+
+.data-reliability-badge .tooltip {
+  margin-left: 6px;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .kpi-period-comparison-wrap {
@@ -1460,6 +1468,17 @@ body {
   background: var(--surface);
 }
 
+.topbar__nav-link--emphasis {
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.topbar__nav-link--emphasis:hover {
+  color: #fff;
+  background: rgba(59, 130, 246, 0.22);
+}
+
 .topbar--auth .topbar__nav {
   margin-left: auto;
 }
@@ -1730,6 +1749,201 @@ body {
   font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
+}
+
+/* ── Landing (public intro) ─────────────────────────────── */
+.landing-page {
+  min-height: 100%;
+}
+
+.landing-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 36px 24px 56px;
+}
+
+.landing-hero {
+  margin-bottom: 40px;
+}
+
+.landing-hero__title {
+  margin: 0 0 14px;
+  font-size: clamp(1.45rem, 3.5vw, 2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.landing-hero__lead {
+  margin: 0 0 22px;
+  max-width: 52ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.landing-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.landing-btn-outline {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.landing-btn-outline:hover {
+  background: var(--surface-hover);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.landing-cta-tertiary {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(147, 197, 253, 0.95);
+  text-decoration: none;
+  padding: 8px 4px;
+}
+
+.landing-cta-tertiary:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.landing-hero__note {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.85);
+  max-width: 48ch;
+  line-height: 1.45;
+}
+
+.landing-section {
+  margin-bottom: 36px;
+}
+
+.landing-section--how {
+  padding-top: 8px;
+}
+
+.landing-section__title {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.landing-benefits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .landing-benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-benefits__item {
+  padding: 16px 18px;
+  margin: 0;
+}
+
+.landing-benefits__heading {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.landing-benefits__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.landing-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing-steps__item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.landing-steps__item:last-child {
+  margin-bottom: 0;
+}
+
+.landing-steps__num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.landing-footer {
+  margin-top: 44px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.landing-footer__text {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.landing-footer__links {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.landing-footer__links a {
+  color: rgba(147, 197, 253, 0.95);
+  text-decoration: none;
+}
+
+.landing-footer__links a:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+.landing-footer__sep {
+  margin: 0 8px;
+  color: rgba(148, 163, 184, 0.5);
 }
 
 /* ── Responsive ─────────────────────────────────────────── */

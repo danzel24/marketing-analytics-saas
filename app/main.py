@@ -431,7 +431,12 @@ def create_app() -> FastAPI:
 
     @app.get("/api")
     def api_root() -> dict[str, str]:
-        return {"message": "Marketing Analytics API", "versions": ["v1", "api/v1"], "web": "/dashboard"}
+        return {
+            "message": "Marketing Analytics API",
+            "versions": ["v1", "api/v1"],
+            "web": "/",
+            "dashboard": "/dashboard",
+        }
 
     return app
 

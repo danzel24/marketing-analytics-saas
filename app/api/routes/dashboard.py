@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from app.core.config import get_settings
@@ -16,10 +16,10 @@ from app.services.marketing_service import MarketingService
 router = APIRouter(tags=["dashboard"])
 
 
-@router.get("/")
-def web_root() -> RedirectResponse:
-    """Browser entry: go to dashboard (JS redirects unauthenticated users to /login)."""
-    return RedirectResponse(url="/dashboard", status_code=302)
+@router.get("/", response_class=HTMLResponse)
+def web_root(request: Request) -> HTMLResponse:
+    """Public landing page; dashboard remains at ``/dashboard``."""
+    return template_response(request=request, name="landing.html")
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
