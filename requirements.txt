@@ -3,3 +3,10 @@ uvicorn[standard]
 pydantic
 jinja2
 sqlmodel
+alembic
+PyJWT
+passlib[bcrypt]
+bcrypt==4.0.1
+email-validator
+python-multipart
+pytest

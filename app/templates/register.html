@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registrace — Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/register.js"></script>
+  </head>
+  <body class="auth-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <a href="/" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Nový účet</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav">
+        <a class="topbar__nav-link" href="/login">Přihlášení</a>
+      </nav>
+    </header>
+
+    <main class="auth-main">
+      <div class="card login-card auth-card">
+        <h1 class="auth-card__title">Registrace</h1>
+        <p class="login-subtitle">Vytvořte si účet a pracovní prostor pro vaše kampaně.</p>
+
+        <div class="login-field">
+          <label for="registerEmail">E-mail</label>
+          <input id="registerEmail" type="email" autocomplete="email" required placeholder="vas@email.cz" />
+        </div>
+        <div class="login-field">
+          <label for="registerPassword">Heslo (min. 8 znaků)</label>
+          <input id="registerPassword" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••" />
+        </div>
+        <div class="login-field">
+          <label for="registerClientName">Název firmy / klienta</label>
+          <input id="registerClientName" type="text" autocomplete="organization" required minlength="2" placeholder="Moje firma s.r.o." />
+        </div>
+
+        <button id="registerBtn" type="button" class="btn login-btn btn--primary">Vytvořit účet</button>
+        <p id="registerLoading" class="auth-loading hidden">Vytvářím účet…</p>
+        <p id="registerError" class="login-error" role="alert"></p>
+      </div>
+    </main>
+  </body>
+</html>

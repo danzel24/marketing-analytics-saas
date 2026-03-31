@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chyba serveru — Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body class="auth-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <a href="/" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Přehled výkonu marketingu</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav">
+        <a class="topbar__nav-link" href="/login">Přihlášení</a>
+      </nav>
+    </header>
+    <main class="auth-main">
+      <div class="card auth-card error-page-card">
+        <p class="error-page__code">500</p>
+        <h1 class="auth-card__title">Něco se pokazilo</h1>
+        <p class="error-page__text">
+          Došlo k neočekávané chybě. Zkuste akci zopakovat později. Pokud problém přetrvává, kontaktujte správce a uveďte
+          níže uvedené ID požadavku.
+        </p>
+        <p class="error-page__id">ID požadavku: {{ request_id }}</p>
+        <div class="error-page__actions">
+          <a class="btn btn--primary" href="/dashboard">Zpět na přehled</a>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

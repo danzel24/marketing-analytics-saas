@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nahrát CSV — Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/upload.js"></script>
+  </head>
+  <body class="auth-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <a href="/dashboard" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Import dat</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav">
+        <a class="topbar__nav-link" href="/dashboard">Přehled</a>
+      </nav>
+    </header>
+
+    <main class="auth-main">
+      <div class="card login-card auth-card auth-card--wide">
+        <h1 class="auth-card__title">Nahrát CSV s tržbami</h1>
+        <p class="login-subtitle">
+          Nahrajte soubor ve formátu CSV (UTF-8). Potřebujeme sloupce pro kampaň, tržby a náklady — podle nastavení importu v aplikaci.
+        </p>
+
+        <form id="uploadForm" class="upload-form">
+          <div class="login-field">
+            <label for="csvFile">Soubor (.csv)</label>
+            <input id="csvFile" name="file" type="file" accept=".csv,text/csv" required />
+          </div>
+          <button id="uploadBtn" type="submit" class="btn btn--primary">Nahrát a importovat</button>
+        </form>
+        <p id="uploadLoading" class="auth-loading hidden">Nahrávám a zpracovávám…</p>
+        <p id="uploadSuccess" class="upload-success" role="status"></p>
+        <p id="uploadError" class="login-error" role="alert"></p>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/dashboard.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__left">
+        <a href="/dashboard" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Přehled výkonu marketingu a ziskovosti</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav" aria-label="Hlavní menu">
+        <a class="topbar__nav-link" href="/upload">Nahrát CSV</a>
+      </nav>
+      <div class="topbar__right">
+        <span id="dataReliabilityBadge" class="data-reliability-badge hidden" aria-live="polite"></span>
+        <button id="admin-btn" type="button" style="display:none;">Administrace</button>
+        <button id="logoutBtn" type="button" class="btn btn--logout">Odhlásit se</button>
+      </div>
+    </header>
+
+    <main id="dashboardSection" class="container">
+      <div class="filter-bar">
+        <span class="filter-bar__label">Období:</span>
+        <button type="button" class="filter-btn" data-days="7">7 dní</button>
+        <button type="button" class="filter-btn active" data-days="30">30 dní</button>
+        <button type="button" class="filter-btn" data-days="90">90 dní</button>
+      </div>
+
+      <div id="dashboardEmptyBanner" class="dashboard-empty-banner card hidden" role="status">
+        <p class="dashboard-empty-banner__title">Zatím nemáte žádná marketingová data</p>
+        <p class="dashboard-empty-banner__text">
+          Nahrajte CSV s výkonem kampaní (tržby, náklady), nebo propojte reklamní účet později v nastavení.
+        </p>
+        <p class="dashboard-empty-banner__actions">
+          <a class="btn btn--primary" href="/upload">Nahrát CSV</a>
+        </p>
+      </div>
+
+      <section id="dataTrustStrip" class="data-trust-strip card hidden" aria-label="Důvěra v data">
+        <div class="data-trust-strip__line" id="dataTrustWindow">—</div>
+        <div class="data-trust-strip__line data-trust-strip__line--muted" id="dataTrustSources">—</div>
+        <div class="data-trust-strip__line data-trust-strip__line--muted" id="dataTrustUpdated">—</div>
+      </section>
+
+      <section id="actionBoxToday" class="action-box-today card hidden" aria-label="Doporučení">
+        <h2 class="action-box-today__title">Doporučení</h2>
+        <div id="primaryRecommendationCard" class="primary-recommendation-card hidden" aria-live="polite"></div>
+        <ul id="actionBoxTodayList" class="action-box-today__list"></ul>
+      </section>
+
+      <section id="headlineBanner" class="headline-banner hidden" aria-hidden="true">
+        <div class="headline-banner__content">
+          <div class="headline-banner__text" id="headlineText"></div>
+          <div class="headline-banner__sub" id="headlineSub"></div>
+        </div>
+      </section>
+
+      <section id="riskBanner" class="risk-banner hidden">
+        <div class="risk-banner__text" id="riskBannerText"></div>
+        <div class="risk-banner__sub" id="riskBannerSub"></div>
+      </section>
+
+      <section class="kpi-grid">
+        <div class="card kpi">
+          <div class="kpi__label">Tržby</div>
+          <div id="kpiRevenue" class="kpi__value">—</div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi__label">Náklady na reklamu</div>
+          <div id="kpiSpend" class="kpi__value">—</div>
+        </div>
+        <div class="card kpi kpi--profit">
+          <div class="kpi__label" id="kpiProfitLabel">Zisk (po marži … %) <span class="tooltip" data-tip="Zisk počítáme jako: tržby × marže − náklady na reklamu. Nejde o účetní čistý zisk (bez DPH, logistiky apod.).">?</span></div>
+          <div id="kpiProfitImpact" class="kpi-profit-impact" aria-live="polite"></div>
+          <div id="kpiProfit" class="kpi__value kpi__value--hero">—</div>
+          <div id="kpiProfitCaption" class="kpi__hero-caption">Čistý zisk z marketingu</div>
+        </div>
+        <div class="card kpi kpi--loss" id="kpiLossCard">
+          <div class="kpi__label">Ztráta z neefektivních kampaní <span class="tooltip" data-tip="Součet ztrát z kampaní pod bodem zvratu (ROAS).">?</span></div>
+          <div id="kpiLoss" class="kpi__value">—</div>
+          <div id="kpiLossMeta" class="kpi__helper"></div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi__label">Průměrné ROAS <span class="tooltip" data-tip="ROAS = tržby / náklady na reklamu">?</span></div>
+          <div id="kpiRoas" class="kpi__value">—</div>
+          <div id="kpiRoasMeta" class="kpi__meta"></div>
+        </div>
+        <div class="card kpi">
+          <div class="kpi__label">Bod zvratu (ROAS) <span class="tooltip" data-tip="Minimální ROAS, při kterém kampaně nepřinášejí ztrátu">?</span></div>
+          <div id="kpiBreakEvenRoas" class="kpi__value">—</div>
+        </div>
+      </section>
+      <div id="kpiPeriodComparison" class="kpi-period-comparison-wrap hidden" aria-live="polite"></div>
+      <p id="kpiTrustMicrocopy" class="kpi-trust-microcopy" aria-live="polite"></p>
+      <p id="partialDataNote" class="kpi-partial-data-note hidden" aria-live="polite"></p>
+      <p id="marginInfo" class="dashboard-footnote"></p>
+      <p id="marginFallbackInfo" class="dashboard-footnote hidden">Používá se výchozí marže</p>
+
+      <section class="card insights-section insights-section--secondary">
+        <div class="tableCard__header">
+          <div>
+            <h2 class="panel__title">Trendy a poznámky</h2>
+            <div class="panel__subtitle" id="insightsSubtitle">Co se děje s tržbami a ROAS</div>
+          </div>
+        </div>
+        <div id="primaryAction" class="primary-action hidden"></div>
+        <ul id="insightsList" class="insights-list"></ul>
+        <div class="insights-footnote">Zdroj: vaše kampaně v systému</div>
+      </section>
+
+      <section class="card tableCard tableCard--decisions">
+        <div class="tableCard__header">
+          <h2 class="panel__title">Rozhodnutí podle kampaní</h2>
+          <div id="status" class="status"></div>
+        </div>
+        <div class="tableWrap">
+          <table class="table table--campaign-decisions">
+            <thead>
+              <tr>
+                <th>Kampaň</th>
+                <th class="num">Náklady</th>
+                <th class="num">Tržby</th>
+                <th class="num">Čistý zisk <span class="tooltip" data-tip="Čistý zisk = (tržby × marže) − náklady na reklamu. Marže = hrubá marže produktu.">?</span></th>
+                <th class="num">ROAS</th>
+                <th class="num">CPA</th>
+                <th>Status</th>
+                <th>Důvod</th>
+                <th>Tip</th>
+                <th>Akce</th>
+              </tr>
+            </thead>
+            <tbody id="campaignTbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="charts-grid charts-grid--secondary charts-grid--deemphasized">
+        <p class="charts-grid__label charts-grid__label--muted">Detail vývoje (pro kontrolu)</p>
+        <div class="card panel chart-container">
+          <div class="panel__header">
+            <h2 class="panel__title panel__title--compact">Tržby</h2>
+          </div>
+          <div class="panel__body">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card panel chart-container">
+          <div class="panel__header">
+            <h2 class="panel__title panel__title--compact">Náklady</h2>
+          </div>
+          <div class="panel__body">
+            <canvas id="spendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card panel chart-container">
+          <div class="panel__header">
+            <h2 class="panel__title panel__title--compact">Čistý zisk</h2>
+          </div>
+          <div class="panel__body">
+            <canvas id="profitChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <p class="dashboard-footnote">Data jsou aktualizována automaticky</p>
+    </main>
+  </body>
+</html>
