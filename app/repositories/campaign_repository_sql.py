@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 
 from app.core.domain_errors import EntityTenantMismatchError
 from app.core.internal_call import require_internal_call
@@ -71,3 +71,12 @@ class CampaignRepository:
         self.session.delete(obj)
         self.session.commit()
         return True
+
+    def delete_imported_campaigns_for_client(self, client_id: int, *, commit: bool = True) -> int:
+        """Delete campaigns with ``platform == \"imported\"`` for this tenant (CSV-imported rows only)."""
+        cid = require_positive_client_id(client_id)
+        stmt = delete(Campaign).where(Campaign.client_id == cid).where(Campaign.platform == "imported")
+        result = self.session.exec(stmt)
+        if commit:
+            self.session.commit()
+        return int(result.rowcount or 0)

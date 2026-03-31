@@ -207,3 +207,21 @@ class CampaignMetricRepository:
         result = self.session.exec(stmt)
         self.session.commit()
         return int(result.rowcount or 0)
+
+    def delete_metrics_for_imported_campaigns(self, client_id: int, *, commit: bool = True) -> int:
+        """
+        Delete all metrics whose campaign belongs to ``client_id`` and has ``platform == \"imported\"``.
+        Must run before deleting those campaigns (FK).
+
+        Set ``commit=False`` when the caller (e.g. :class:`CSVService`) wraps multiple deletes in one transaction.
+        """
+        cid = require_positive_client_id(client_id)
+        imported_ids = select(Campaign.id).where(
+            Campaign.client_id == cid,
+            Campaign.platform == "imported",
+        )
+        stmt = delete(CampaignMetric).where(CampaignMetric.campaign_id.in_(imported_ids))
+        result = self.session.exec(stmt)
+        if commit:
+            self.session.commit()
+        return int(result.rowcount or 0)

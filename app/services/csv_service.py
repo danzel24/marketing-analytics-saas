@@ -9,7 +9,7 @@ import unicodedata
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core.domain_errors import ValidationError
+from app.core.domain_errors import InvalidOperationError, ValidationError
 from app.core.error_codes import ErrorCode
 from app.models.db_models import Campaign, CampaignMetric
 from app.repositories.campaign_metric_repository import CampaignMetricRepository
@@ -17,6 +17,9 @@ from app.repositories.campaign_repository_sql import CampaignRepository
 from app.repositories.tenant_scope import require_positive_client_id
 
 DEFAULT_IMPORT_CAMPAIGN_NAME = "Imported Data"
+# API body must send this exact string in ``confirm`` to clear CSV-imported rows.
+CLEAR_IMPORTED_CONFIRMATION = "DELETE_IMPORTED_DATA"
+
 logger = logging.getLogger(__name__)
 MAX_CSV_UPLOAD_BYTES = 15 * 1024 * 1024
 
@@ -33,6 +36,40 @@ class CSVService:
     @staticmethod
     def _require_tenant_client_id(client_id: int) -> int:
         return require_positive_client_id(client_id)
+
+    def clear_imported_data_for_client(self, client_id: int, confirmation: str | None) -> dict[str, int]:
+        """
+        Remove all CSV-imported campaigns and their metrics for ``client_id``.
+
+        Only rows with ``Campaign.platform == \"imported\"`` are removed (integration campaigns untouched).
+        Users and Client row are never deleted.
+        """
+        cid = self._require_tenant_client_id(client_id)
+        if (confirmation or "").strip() != CLEAR_IMPORTED_CONFIRMATION:
+            raise InvalidOperationError(
+                "Pro smazání importovaných dat odešlete v těle požadavku pole "
+                f'"confirm": "{CLEAR_IMPORTED_CONFIRMATION}".',
+                code=ErrorCode.INVALID_CONFIRMATION,
+            )
+        # Single transaction: both repos must share the same Session (FastAPI get_session).
+        session = self.metric_repo.session
+        try:
+            metrics_deleted = self.metric_repo.delete_metrics_for_imported_campaigns(cid, commit=False)
+            campaigns_deleted = self.campaign_repo.delete_imported_campaigns_for_client(cid, commit=False)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        logger.info(
+            "imported_data_cleared client_id=%s metrics_deleted=%s campaigns_deleted=%s",
+            cid,
+            metrics_deleted,
+            campaigns_deleted,
+        )
+        return {
+            "metrics_deleted": metrics_deleted,
+            "campaigns_deleted": campaigns_deleted,
+        }
 
     def import_revenue_csv_bytes(self, raw: bytes, client_id: int) -> dict[str, int | str | list[dict[str, object]]]:
         if not isinstance(raw, (bytes, bytearray)):

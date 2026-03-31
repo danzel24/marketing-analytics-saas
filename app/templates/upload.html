@@ -44,6 +44,17 @@
         <p id="uploadLoading" class="auth-loading hidden">Nahrávám a zpracovávám…</p>
         <p id="uploadSuccess" class="upload-success" role="status"></p>
         <p id="uploadError" class="login-error" role="alert"></p>
+
+        <div class="upload-danger-zone" aria-labelledby="clearImportHeading">
+          <h2 id="clearImportHeading" class="upload-danger-zone__title">Vymazat importovaná data</h2>
+          <p class="upload-danger-zone__text">
+            Smaže všechny kampaně a metriky vytvořené importem CSV (platforma „imported“) pro váš účet. Účet a organizace
+            zůstanou zachované. Akce je nevratná.
+          </p>
+          <button id="clearImportBtn" type="button" class="btn btn--danger-outline">Vymazat importovaná data</button>
+          <p id="clearImportStatus" class="upload-success" role="status"></p>
+          <p id="clearImportError" class="login-error" role="alert"></p>
+        </div>
       </div>
     </main>
   </body>

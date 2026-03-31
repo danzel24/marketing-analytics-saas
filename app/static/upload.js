@@ -5,6 +5,9 @@
   const err = document.getElementById("uploadError");
   const ok = document.getElementById("uploadSuccess");
   const loading = document.getElementById("uploadLoading");
+  const clearBtn = document.getElementById("clearImportBtn");
+  const clearOk = document.getElementById("clearImportStatus");
+  const clearErr = document.getElementById("clearImportError");
 
   function setLoading(on) {
     if (loading) loading.classList.toggle("hidden", !on);
@@ -21,6 +24,38 @@
       window.location.href = "/login";
       return;
     }
+  }
+
+  const CLEAR_CONFIRM = "DELETE_IMPORTED_DATA";
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", async () => {
+      if (clearOk) clearOk.textContent = "";
+      if (clearErr) clearErr.textContent = "";
+      const ok = window.confirm(
+        "Opravdu chcete vymazat všechna importovaná CSV data pro váš účet? Tuto akci nelze vrátit zpět.",
+      );
+      if (!ok) return;
+      if (clearBtn) clearBtn.disabled = true;
+      try {
+        const data = await window.authFetchJson("/api/v1/upload/clear-imported", {
+          method: "POST",
+          body: JSON.stringify({ confirm: CLEAR_CONFIRM }),
+        });
+        const md = data.metrics_deleted ?? 0;
+        const cd = data.campaigns_deleted ?? 0;
+        if (clearOk) {
+          clearOk.textContent = `Smazáno: ${md} metrik, ${cd} kampaní. Můžete nahrát nový CSV.`;
+        }
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1500);
+      } catch (ex) {
+        if (clearErr) clearErr.textContent = String(ex.message || ex || "Akce selhala.");
+      } finally {
+        if (clearBtn) clearBtn.disabled = false;
+      }
+    });
   }
 
   form.addEventListener("submit", async (e) => {

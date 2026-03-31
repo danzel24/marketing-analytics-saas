@@ -1474,6 +1474,46 @@ body {
   color: var(--green);
 }
 
+.upload-danger-zone {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.upload-danger-zone__title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.upload-danger-zone__text {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.btn--danger-outline {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: var(--red);
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn--danger-outline:hover {
+  background: var(--red-muted);
+  border-color: rgba(239, 68, 68, 0.65);
+}
+
+.btn--danger-outline:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .error-page-card {
   text-align: center;
 }
