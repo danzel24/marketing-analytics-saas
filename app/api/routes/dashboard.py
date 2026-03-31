@@ -1,23 +1,19 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from app.core.config import get_settings
 from app.core.deps import get_current_user
+from app.core.web_templates import template_response
 from app.database import get_session
 from app.models.db_models import User
 from app.services.marketing_service import MarketingService
 
 router = APIRouter(tags=["dashboard"])
-
-_TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"  # app/templates
-templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 
 @router.get("/")
@@ -28,22 +24,22 @@ def web_root() -> RedirectResponse:
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return template_response(request=request, name="dashboard.html")
 
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("login.html", {"request": request})
+    return template_response(request=request, name="login.html")
 
 
 @router.get("/register", response_class=HTMLResponse)
 def register_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("register.html", {"request": request})
+    return template_response(request=request, name="register.html")
 
 
 @router.get("/upload", response_class=HTMLResponse)
 def upload_page(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("upload.html", {"request": request})
+    return template_response(request=request, name="upload.html")
 
 
 @router.get("/api/v1/dashboard/overview")

@@ -2,13 +2,10 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
-
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 from starlette.responses import Response
 from app.api.routes.campaigns import router as campaigns_router
@@ -32,6 +29,8 @@ from app.core.auth_cookies import clear_refresh_cookie, set_refresh_cookie
 from app.core.config import get_startup_settings, validate_startup_config
 from app.core.rate_limit import auth_rate_limit_response_or_none
 from app.core.structured_logging import access_log_middleware, configure_structured_logging
+from app.core.web_paths import STATIC_DIR, log_web_paths
+from app.core.web_templates import template_response_safe
 from app.core.security import decode_access_token
 from app.database import create_db_and_tables, engine
 from app.jobs.google_ads_sync import run_google_ads_sync_all_clients_once
@@ -39,8 +38,6 @@ from app.services.auth_service import AuthService
 
 logger = logging.getLogger(__name__)
 error_logger = logging.getLogger("app.errors")
-
-_TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
 
 def _is_api_request(request: Request) -> bool:
@@ -187,9 +184,10 @@ def create_app() -> FastAPI:
 
         if _prefers_html(request):
             if exc.status_code == 404:
-                return _TEMPLATES.TemplateResponse(
-                    "error_404.html",
-                    {"request": request, "request_id": request_id},
+                return template_response_safe(
+                    request=request,
+                    name="error_404.html",
+                    context={"request_id": request_id},
                     status_code=404,
                 )
             if 400 <= exc.status_code < 500:
@@ -199,10 +197,10 @@ def create_app() -> FastAPI:
                     429: "Příliš mnoho požadavků",
                 }
                 heading = headings.get(exc.status_code, "Chyba požadavku")
-                return _TEMPLATES.TemplateResponse(
-                    "error_http.html",
-                    {
-                        "request": request,
+                return template_response_safe(
+                    request=request,
+                    name="error_http.html",
+                    context={
                         "request_id": request_id,
                         "status_code": exc.status_code,
                         "heading": heading,
@@ -255,9 +253,10 @@ def create_app() -> FastAPI:
             response.headers[TRACE_ID_HEADER] = trace_id
             return response
         if _prefers_html(request):
-            return _TEMPLATES.TemplateResponse(
-                "error_500.html",
-                {"request": request, "request_id": request_id},
+            return template_response_safe(
+                request=request,
+                name="error_500.html",
+                context={"request_id": request_id},
                 status_code=500,
             )
         payload = build_error_payload(
@@ -299,6 +298,7 @@ def create_app() -> FastAPI:
     async def _on_startup() -> None:
         configure_structured_logging()
         validate_startup_config()
+        log_web_paths(logger)
         create_db_and_tables()
         s = get_startup_settings()
         logger.info(
@@ -378,7 +378,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(integrations_router)
 
-    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     def custom_openapi() -> dict:
         if app.openapi_schema:
