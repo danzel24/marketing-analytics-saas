@@ -172,6 +172,27 @@ body {
   color: #93c5fd;
 }
 
+.filter-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.dashboard-load-hint {
+  margin: -18px 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.dashboard-section--empty .kpi-grid {
+  opacity: 0.88;
+}
+
+.dashboard-section--empty .charts-grid--secondary {
+  opacity: 0.75;
+}
+
 /* ── Cards ──────────────────────────────────────────────── */
 .card {
   border: 1px solid var(--border);
@@ -1472,6 +1493,80 @@ body {
   margin-top: 12px;
   font-size: 13px;
   color: var(--green);
+}
+
+.upload-onboarding {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  text-align: left;
+}
+
+.upload-onboarding__title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.upload-onboarding__text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.upload-onboarding__label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.upload-onboarding__code {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(8, 14, 26, 0.85);
+  font-size: 12px;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  color: rgba(226, 232, 240, 0.92);
+  overflow-x: auto;
+}
+
+.upload-onboarding__footnote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(148, 163, 184, 0.88);
+}
+
+.alert {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  border: 1px solid transparent;
+}
+
+.alert--success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.alert--success strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: #a7f3d0;
+}
+
+.alert--error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fecaca;
 }
 
 .upload-danger-zone {

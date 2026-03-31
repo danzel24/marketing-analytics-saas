@@ -167,10 +167,16 @@ class CSVService:
         skipped += max(0, len(normalized_rows) - imported - updated)
         logger.info("CSV import: %s imported, %s updated, %s skipped", imported, updated, skipped)
         response_format = "custom" if detected_format.startswith("custom") else detected_format
+        distinct_campaign_ids = {
+            int(r["campaign_id"])
+            for r in normalized_rows
+            if isinstance(r.get("campaign_id"), int)
+        }
         return {
             "imported": imported,
             "updated": updated,
             "skipped": skipped,
+            "campaigns_in_import": len(distinct_campaign_ids),
             "errors": errors,
             "detected_format": response_format,
         }

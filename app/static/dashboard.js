@@ -728,10 +728,20 @@ function renderDataReliabilityBadge(overview) {
   else el.classList.add("data-reliability-badge--low");
 }
 
+function setDashboardLoading(on) {
+  document.querySelectorAll(".filter-btn").forEach((b) => {
+    b.disabled = on;
+  });
+  const hint = document.getElementById("dashboardLoadHint");
+  if (hint) hint.classList.toggle("hidden", !on);
+}
+
 function renderDashboardEmptyBanner(show) {
   const el = document.getElementById("dashboardEmptyBanner");
   if (!el) return;
   el.classList.toggle("hidden", !show);
+  const main = document.getElementById("dashboardSection");
+  if (main) main.classList.toggle("dashboard-section--empty", Boolean(show));
 }
 
 function renderMarginInfo(data) {
@@ -762,7 +772,7 @@ function renderTopCampaigns(topCampaigns, breakEven) {
   els.tbody.innerHTML = "";
   if (!topCampaigns || topCampaigns.length === 0) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="10" class="empty-row">Zatím nemáte žádná data. Nahrajte CSV nebo propojte Google Ads.</td>`;
+    tr.innerHTML = `<td colspan="10" class="empty-row">Zatím nemáte nahraná data. Nahrajte CSV — zobrazíme výkon kampaní, ROAS a doporučení. Propojení reklamního účtu můžete doplnit později.</td>`;
     els.tbody.appendChild(tr);
     return;
   }
@@ -1046,8 +1056,9 @@ function initFilterBar() {
 /* ── Dashboard loader ───────────────────────────────────── */
 
 async function loadDashboard() {
-  setStatus("Načítám data...", "info");
-  els.dashboardSection.style.opacity = "0.5";
+  setDashboardLoading(true);
+  setStatus("Načítám dashboard…", "info");
+  els.dashboardSection.style.opacity = "0.92";
   try {
     const [data, insightsData] = await Promise.all([
       fetchJson(`/api/v1/dashboard/full?days=${selectedDays}`),
@@ -1102,7 +1113,7 @@ async function loadDashboard() {
     const sub = document.getElementById("insightsSubtitle");
     if (sub) sub.textContent = `Trend za ${selectedDays} dní`;
     if (!Array.isArray(campaignsForSignals) || campaignsForSignals.length === 0) {
-      setStatus("Zatím nemáte žádná data — nahrajte CSV nebo propojte Google Ads.", "info");
+      setStatus("Zatím nemáte nahraná data — nahrajte CSV pro přehled výkonu.", "info");
       return;
     }
     if (isEmptyMetrics) {
@@ -1124,6 +1135,7 @@ async function loadDashboard() {
     }
     setStatus("Nepodařilo se načíst data. Zkuste to prosím znovu.", "error");
   } finally {
+    setDashboardLoading(false);
     els.dashboardSection.style.opacity = "1";
   }
 }
@@ -1170,6 +1182,8 @@ function resetDashboardUi() {
   }
   const emptyBanner = document.getElementById("dashboardEmptyBanner");
   if (emptyBanner) emptyBanner.classList.add("hidden");
+  const main = document.getElementById("dashboardSection");
+  if (main) main.classList.remove("dashboard-section--empty");
   if (els.kpiProfitImpact) {
     els.kpiProfitImpact.textContent = "";
     els.kpiProfitImpact.className = "kpi-profit-impact";
