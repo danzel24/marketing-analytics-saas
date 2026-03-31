@@ -1,3 +1,10 @@
-from app.models.db_models import Campaign, CampaignMetric, Client, User
+from .db_models import Campaign, CampaignMetric, Client, Integration, RefreshTokenJti, User
 
-__all__ = ["Client", "User", "Campaign", "CampaignMetric"]
+__all__ = [
+    "Campaign",
+    "CampaignMetric",
+    "Client",
+    "Integration",
+    "RefreshTokenJti",
+    "User",
+]
