@@ -1808,19 +1808,6 @@ body {
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-.landing-cta-tertiary {
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(147, 197, 253, 0.95);
-  text-decoration: none;
-  padding: 8px 4px;
-}
-
-.landing-cta-tertiary:hover {
-  color: #fff;
-  text-decoration: underline;
-}
-
 .landing-hero__note {
   margin: 0;
   font-size: 12px;
@@ -1921,29 +1908,13 @@ body {
 }
 
 .landing-footer__text {
-  margin: 0 0 10px;
+  margin: 0;
+  max-width: 52ch;
+  margin-left: auto;
+  margin-right: auto;
   font-size: 12px;
+  line-height: 1.5;
   color: var(--text-secondary);
-}
-
-.landing-footer__links {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.landing-footer__links a {
-  color: rgba(147, 197, 253, 0.95);
-  text-decoration: none;
-}
-
-.landing-footer__links a:hover {
-  text-decoration: underline;
-  color: #fff;
-}
-
-.landing-footer__sep {
-  margin: 0 8px;
-  color: rgba(148, 163, 184, 0.5);
 }
 
 /* ── Responsive ─────────────────────────────────────────── */

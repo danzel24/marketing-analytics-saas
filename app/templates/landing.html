@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Marketingový přehled — ROAS, bod zvratu a doporučení pro kampaně. Import CSV, přehledné dashboardy."
+      content="Marketingový přehled: tržby, náklady, ROAS a doporučení. Import CSV, přehled po přihlášení."
     />
     <title>Marketingový přehled — rychlá rozhodnutí o kampaních</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,7 +20,7 @@
           <div class="brand__logo">MA</div>
           <div class="brand__text">
             <div class="brand__title">Marketingový přehled</div>
-            <div class="brand__subtitle">Demo &amp; portfolio</div>
+            <div class="brand__subtitle">Portfolio</div>
           </div>
         </div>
       </div>
@@ -34,15 +34,15 @@
       <section class="landing-hero">
         <h1 class="landing-hero__title">Marketingový přehled pro rychlé rozhodování o kampaních</h1>
         <p class="landing-hero__lead">
-          Spojte tržby, náklady a marži v jednom přehledu. Uvidíte ROAS, bod zvratu a konkrétní tipy, co škálovat a kde
-          šetřit — bez složitých tabulek.
+          Tržby, náklady, ROAS a doporučení na jednom místě — pro jednoduchá rozhodnutí, ne pro prohrabávání tabulek.
         </p>
         <div class="landing-cta-row" role="group" aria-label="Začít používat">
           <a class="btn btn--primary" href="/register">Registrovat se</a>
-          <a class="btn landing-btn-outline" href="/login">Přihlásit se</a>
-          <a class="landing-cta-tertiary" href="/dashboard">Vyzkoušet přehled</a>
+          <a class="btn landing-btn-outline" href="/login">Přihlásit se a otevřít přehled</a>
         </div>
-        <p class="landing-hero__note">Účet je potřeba pro vlastní data; přehled bez přihlášení přesměruje na přihlášení.</p>
+        <p class="landing-hero__note">
+          Přehled je dostupný po přihlášení. Data nahráváte jako CSV do vlastního účtu.
+        </p>
       </section>
 
       <section class="landing-section" aria-labelledby="landing-benefits-heading">
@@ -50,7 +50,7 @@
         <ul class="landing-benefits">
           <li class="landing-benefits__item card">
             <h3 class="landing-benefits__heading">Přehled výkonu kampaní</h3>
-            <p class="landing-benefits__text">Tržby, náklady a čistý zisk z reklamy v jednom dashboardu.</p>
+            <p class="landing-benefits__text">Tržby, náklady a čistý zisk z reklamy přehledně vedle sebe.</p>
           </li>
           <li class="landing-benefits__item card">
             <h3 class="landing-benefits__heading">ROAS a bod zvratu</h3>
@@ -62,7 +62,7 @@
           </li>
           <li class="landing-benefits__item card">
             <h3 class="landing-benefits__heading">Import přes CSV</h3>
-            <p class="landing-benefits__text">Nahrajte datum, kampaň, tržby a náklady — bez integrace navíc.</p>
+            <p class="landing-benefits__text">Datum, kampaň, tržby a náklady v CSV — bez další integrace.</p>
           </li>
         </ul>
       </section>
@@ -79,7 +79,7 @@
           <li class="landing-steps__item">
             <span class="landing-steps__num">2</span>
             <div>
-              <strong>Otevřete přehled</strong> — KPI, grafy a tabulka rozhodnutí podle kampaní.
+              <strong>Přihlaste se a otevřete přehled</strong> — KPI, grafy a tabulka podle kampaní.
             </div>
           </li>
           <li class="landing-steps__item">
@@ -92,12 +92,9 @@
       </section>
 
       <footer class="landing-footer">
-        <p class="landing-footer__text">Demo a portfolio: FastAPI, multi-tenant, import CSV.</p>
-        <div class="landing-footer__links">
-          <a href="/login">Přihlásit se</a>
-          <span class="landing-footer__sep" aria-hidden="true">·</span>
-          <a href="/register">Registrace</a>
-        </div>
+        <p class="landing-footer__text">
+          Demo projekt: FastAPI SaaS dashboard pro marketingová data (multi-tenant, import CSV).
+        </p>
       </footer>
     </main>
   </body>
