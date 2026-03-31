@@ -384,11 +384,41 @@ class CSVService:
         if not campaign_name:
             default_campaign = self.get_or_create_default_campaign(client_id)
             return default_campaign.id
-        campaign = self.campaign_repo.get_by_name(client_id, campaign_name)
-        if not campaign:
-            default_campaign = self.get_or_create_default_campaign(client_id)
-            return default_campaign.id
-        return campaign.id
+
+        existing = self.campaign_repo.get_by_name(client_id, campaign_name)
+        if existing:
+            return existing.id
+
+        return self._create_named_import_campaign_or_get_existing(campaign_name, client_id)
+
+    def _create_named_import_campaign_or_get_existing(self, campaign_name: str, client_id: int) -> int | None:
+        """
+        Create a tenant-scoped campaign for CSV import, or return existing on race / duplicate.
+
+        Uses platform ``imported``; never assigns rows to another client's campaigns.
+        """
+        cid = self._require_tenant_client_id(client_id)
+        try:
+            created = self.campaign_repo.create_for_client(
+                cid,
+                Campaign(
+                    name=campaign_name,
+                    platform="imported",
+                    client_id=cid,
+                ),
+            )
+            return created.id
+        except IntegrityError:
+            self.campaign_repo.session.rollback()
+            again = self.campaign_repo.get_by_name(cid, campaign_name)
+            if again is not None:
+                return again.id
+            logger.exception(
+                "CSV campaign create failed with IntegrityError and no matching row after rollback name=%r client_id=%s",
+                campaign_name,
+                cid,
+            )
+            return None
 
     def _resolve_campaign_id(self, campaign_id_raw: str | None, client_id: int) -> tuple[int | None, str | None]:
         campaign_id = None
