@@ -186,19 +186,11 @@ function renderScenarioInsights(container, scenarioProfits) {
 }
 
 /* ── Auth helpers ───────────────────────────────────────── */
-
-function getToken() {
-  return window.getToken();
-}
-function setToken(t) {
-  window.setToken(t);
-}
-function clearToken() {
-  window.clearToken();
-}
+/* Use window.getToken / clearToken from common.js only — do not declare global
+   function getToken() here: it would overwrite window.getToken and recurse. */
 
 function forceRelogin() {
-  clearToken();
+  window.clearToken();
   destroyCharts();
   resetDashboardUi();
   window.location.href = "/login";
@@ -1202,7 +1194,7 @@ function resetDashboardUi() {
 }
 
 async function handleLogout() {
-  const token = getToken();
+  const token = window.getToken();
   try {
     const headers = new Headers();
     if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -1214,7 +1206,7 @@ async function handleLogout() {
   } catch {
     // Fail-safe: clear local state even if backend fails.
   } finally {
-    clearToken();
+    window.clearToken();
     destroyCharts();
     resetDashboardUi();
     window.location.href = "/login";
@@ -1231,7 +1223,7 @@ els.logoutBtn.addEventListener("click", (e) => {
 window.addEventListener("load", async () => {
   initFilterBar();
   await window.bootstrapSession();
-  if (!getToken()) {
+  if (!window.getToken()) {
     window.location.href = "/login";
     return;
   }
