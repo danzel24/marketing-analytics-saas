@@ -3,6 +3,7 @@ uvicorn[standard]
 pydantic
 jinja2
 sqlmodel
+psycopg2-binary
 alembic
 PyJWT
 passlib[bcrypt]

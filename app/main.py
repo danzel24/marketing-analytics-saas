@@ -32,7 +32,7 @@ from app.core.structured_logging import access_log_middleware, configure_structu
 from app.core.web_paths import STATIC_DIR, log_web_paths
 from app.core.web_templates import template_response_safe
 from app.core.security import decode_access_token
-from app.database import create_db_and_tables, engine
+from app.database import create_db_and_tables, engine, log_database_startup
 from app.jobs.google_ads_sync import run_google_ads_sync_all_clients_once
 from app.services.auth_service import AuthService
 
@@ -298,12 +298,13 @@ def create_app() -> FastAPI:
     async def _on_startup() -> None:
         configure_structured_logging()
         validate_startup_config()
+        log_database_startup(logger)
         log_web_paths(logger)
         create_db_and_tables()
         s = get_startup_settings()
         logger.info(
             "startup app_env=%s production=%s cookie_secure=%s cookie_samesite=%s "
-            "background_sync=%s db_dialect=%s",
+            "background_sync=%s sqlalchemy_dialect=%s",
             s.app_env,
             s.is_production,
             s.cookie_secure,
