@@ -924,12 +924,51 @@ function formatMetricDateCs(raw) {
 }
 
 /**
- * @param {number} labelCount Počet bodů na ose — při menším počtu vypneme autoSkip,
- * aby byl vidět i poslední den (konzistence s „poslední den v datech“).
+ * Indexy kategorií na ose X: nejvýše ``maxTicks`` štítků, vždy včetně prvního a posledního dne
+ * (poslední den v datasetu zůstane na ose čitelně označený).
  */
-function makeChartOptions(tooltipLineFormatter, labelCount) {
-  const n = Math.max(0, Number(labelCount) || 0);
-  const showAllX = n > 0 && n <= 32;
+function buildSparseCategoryTickIndices(labelCount, maxTicks) {
+  const n = Math.max(0, Math.floor(Number(labelCount) || 0));
+  if (n <= 0) return [];
+  if (n === 1) return [0];
+  const cap = Math.min(Math.max(2, maxTicks), n);
+  if (cap >= n) {
+    return Array.from({ length: n }, (_, i) => i);
+  }
+  const out = new Set();
+  for (let k = 0; k < cap; k += 1) {
+    const idx = Math.round((k * (n - 1)) / (cap - 1));
+    out.add(Math.min(n - 1, Math.max(0, idx)));
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+let _dashboardSparseXPluginRegistered = false;
+
+/** Nahradí výchozí category ticky řídkou sadou — řeší překrývající se denní labely. */
+function registerDashboardSparseXAxisPlugin() {
+  if (typeof Chart === "undefined" || _dashboardSparseXPluginRegistered) return;
+  Chart.register({
+    id: "dashboardSparseXAxis",
+    afterBuildTicks(chart, args) {
+      const scale = args?.scale;
+      if (!scale || scale.id !== "x" || scale.type !== "category") return;
+      const labels = chart.data?.labels;
+      if (!Array.isArray(labels) || labels.length === 0) return;
+      const ticks = args.ticks;
+      if (!Array.isArray(ticks)) return;
+      const indices = buildSparseCategoryTickIndices(labels.length, 8);
+      if (indices.length === 0) return;
+      ticks.splice(0, ticks.length);
+      for (const value of indices) {
+        ticks.push({ value });
+      }
+    },
+  });
+  _dashboardSparseXPluginRegistered = true;
+}
+
+function makeChartOptions(tooltipLineFormatter) {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -963,11 +1002,11 @@ function makeChartOptions(tooltipLineFormatter, labelCount) {
       x: {
         grid: { display: false },
         ticks: {
-          font: { size: showAllX ? 9 : 10 },
+          font: { size: 10 },
           color: "rgba(255,255,255,0.4)",
           maxRotation: 0,
-          autoSkip: !showAllX,
-          maxTicksLimit: showAllX ? 40 : 9,
+          autoSkip: true,
+          maxTicksLimit: 12,
           callback(tickValue, index) {
             const chart = this.chart;
             const labels = chart?.data?.labels ?? [];
@@ -987,6 +1026,7 @@ function makeChartOptions(tooltipLineFormatter, labelCount) {
 }
 
 function renderCharts(data) {
+  registerDashboardSparseXAxisPlugin();
   destroyCharts();
   const rev = data?.revenue_trend ?? {};
   const spe = data?.spend_trend ?? {};
@@ -1039,10 +1079,6 @@ function renderCharts(data) {
   const profitCanvas = document.getElementById("profitChart");
   if (!profitCanvas) return;
 
-  const nRev = revenueSeries.labels.length;
-  const nSpe = spendSeries.labels.length;
-  const nProf = profitLabels.length;
-
   charts.revenue = new Chart(els.revenueCanvas, {
     type: "line",
     data: {
@@ -1060,7 +1096,7 @@ function renderCharts(data) {
         spanGaps: false,
       }],
     },
-    options: makeChartOptions((ctx) => `Tržby: ${money(ctx.parsed.y)}`, nRev),
+    options: makeChartOptions((ctx) => `Tržby: ${money(ctx.parsed.y)}`),
   });
 
   charts.spend = new Chart(els.spendCanvas, {
@@ -1080,7 +1116,7 @@ function renderCharts(data) {
         spanGaps: false,
       }],
     },
-    options: makeChartOptions((ctx) => `Náklady: ${money(ctx.parsed.y)}`, nSpe),
+    options: makeChartOptions((ctx) => `Náklady: ${money(ctx.parsed.y)}`),
   });
 
   charts.profit = new Chart(profitCanvas, {
@@ -1100,7 +1136,7 @@ function renderCharts(data) {
         spanGaps: false,
       }],
     },
-    options: makeChartOptions((ctx) => `Čistý zisk: ${money(ctx.parsed.y)}`, nProf),
+    options: makeChartOptions((ctx) => `Čistý zisk: ${money(ctx.parsed.y)}`),
   });
 }
 
