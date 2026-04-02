@@ -336,7 +336,7 @@ function humanizeCampaignName(raw) {
 function shortTableReason(status) {
   const st = String(status || "");
   if (st === "profitable") return "ROAS nad BE";
-  if (st === "at_risk") return "Těsně pod BE";
+  if (st === "at_risk") return "Mírně pod BE";
   if (st === "loss") return "ROAS pod BE";
   if (st === "insufficient_data") return "—";
   return "—";
@@ -410,29 +410,56 @@ function resetChartsSection() {
 
 /* ── Render: Risk banner (revenue at risk) ────────────── */
 
+function campaignCountWord(n) {
+  const k = Math.abs(Number(n)) || 0;
+  if (k === 1) return "kampaň";
+  if (k >= 2 && k <= 4) return "kampaně";
+  return "kampaní";
+}
+
+/**
+ * ``at_risk`` = buffer kolem bodu zvratu (backend). Banner rozliší, jestli už jde o ROAS pod BE
+ * nebo záporný příspěvek — bez přepočtu pásem, jen čtení polí z řádků.
+ */
 function renderRiskBanner(campaigns, breakEven) {
   const be = toFiniteNumber(breakEven ?? 2.5);
   const safe = Array.isArray(campaigns) ? campaigns : [];
+  const atRisk = safe.filter((c) => String(c.status || "") === "at_risk");
 
-  // Sum revenue from campaigns marked by backend as "at_risk"
   let revenueAtRisk = 0;
-  let riskCount = 0;
-  for (const c of safe) {
-    if (String(c.status || "") === "at_risk") {
-      revenueAtRisk += toFiniteNumber(c.revenue);
-      riskCount++;
-    }
+  for (const c of atRisk) {
+    revenueAtRisk += toFiniteNumber(c.revenue);
   }
 
-  if (riskCount > 0 && revenueAtRisk > 0) {
-    els.riskBannerText.innerHTML =
-      `⚠️ ${moneyStrong(money(revenueAtRisk))} tržeb je těsně u bodu zvratu`;
-    els.riskBannerSub.textContent =
-      `Pod ${roasFmt(be)} začnete prodělávat`;
-    els.riskBanner.classList.remove("hidden");
-  } else {
+  if (atRisk.length === 0 || revenueAtRisk <= 0) {
     els.riskBanner.classList.add("hidden");
+    return;
   }
+
+  let anyBelowBe = false;
+  let anyNegativeContribution = false;
+  for (const c of atRisk) {
+    const roas = toFiniteNumber(c.roas);
+    const cbe = toFiniteNumber(c.break_even_roas || be);
+    const profit = toFiniteNumber(
+      c.profit ?? c.contribution_profit ?? c.marketing_profit,
+    );
+    if (cbe > 0 && roas < cbe - 1e-9) anyBelowBe = true;
+    if (profit < 0) anyNegativeContribution = true;
+  }
+
+  const n = atRisk.length;
+  const cw = campaignCountWord(n);
+  const moneyPart = `${moneyStrong(money(revenueAtRisk))} tržeb u ${n} ${cw}`;
+
+  if (anyBelowBe || anyNegativeContribution) {
+    els.riskBannerText.innerHTML = `⚠️ ${moneyPart} — mírně pod bodem zvratu nebo už v záporném příspěvku`;
+    els.riskBannerSub.textContent = `Cílový ROAS je ${roasFmt(be)}. Pod touto hranou se ztráta z marketingu prohlubuje.`;
+  } else {
+    els.riskBannerText.innerHTML = `⚠️ ${moneyPart} — těsně u bodu zvratu`;
+    els.riskBannerSub.textContent = `Držte ROAS kolem ${roasFmt(be)} — pod ním hrozí prohloubení ztráty.`;
+  }
+  els.riskBanner.classList.remove("hidden");
 }
 
 /* ── Render: KPIs ───────────────────────────────────────── */
@@ -646,7 +673,7 @@ function renderKpis(overview, lossSummary) {
     badgeLabel = "Bez dat";
   } else {
     badgeClass = "kpi__badge--breakeven";
-    badgeLabel = "U hranice";
+    badgeLabel = "Mírně pod BE";
   }
   const roasInfo = `<span id="roasInfo" class="kpi__helper">Bod zvratu: ${beDisplay === null ? "—" : roasFmt(beDisplay)}</span>`;
   els.kpiRoasMeta.innerHTML = `<span class="kpi__badge ${badgeClass}">${badgeLabel}</span>${roasInfo}`;
@@ -718,12 +745,12 @@ function renderPeriodComparison(overview) {
 function dataReliabilityTip(tier) {
   const t = String(tier || "");
   if (t === "high") {
-    return "Vysoká: delší období a stabilnější vzorek — silnější signál pro rozhodování.";
+    return "Odhad výkonu je spolehlivější (více dat, stabilnější vzorek).";
   }
   if (t === "medium") {
-    return "Střední: použitelný odhad z dostupných dat; výsledky berte jako orientační.";
+    return "Orientační odhad — krátší období nebo méně bodů v datech.";
   }
-  return "Nízká: málo dat nebo krátké období — slabší signál, interpretujte opatrně.";
+  return "Slabší signál — málo dat nebo krátké okno; vyhodnocujte opatrně.";
 }
 
 function renderDataReliabilityBadge(overview) {
@@ -743,8 +770,9 @@ function renderDataReliabilityBadge(overview) {
 
   const tip = dataReliabilityTip(tier);
   const tipEsc = escapeHtml(tip);
+  const ariaShort = escapeHtml(`Spolehlivost dat ${label}: ${tip}`);
   el.classList.remove("hidden");
-  el.innerHTML = `<span class="data-reliability-badge__label">Spolehlivost dat: ${escapeHtml(label)}</span> <button type="button" class="tooltip tooltip--btn" data-tip="${tipEsc}" aria-label="${tipEsc}">i</button>`;
+  el.innerHTML = `<span class="data-reliability-badge__label">Spolehlivost dat: ${escapeHtml(label)}</span> <button type="button" class="tooltip tooltip--btn" data-tip="${tipEsc}" aria-label="${ariaShort}">i</button>`;
 }
 
 function setDashboardLoading(on) {
@@ -887,7 +915,21 @@ function formatChartTickDate(raw) {
   return `${m[3]}.${m[2]}.`;
 }
 
-function makeChartOptions(tooltipLineFormatter) {
+/** Stejný formát data jako u „Poslední den v datech“ (čitelné, bez času). */
+function formatMetricDateCs(raw) {
+  const s = String(raw ?? "").trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return s || "—";
+  return `${Number(m[3])}. ${Number(m[2])}. ${m[1]}`;
+}
+
+/**
+ * @param {number} labelCount Počet bodů na ose — při menším počtu vypneme autoSkip,
+ * aby byl vidět i poslední den (konzistence s „poslední den v datech“).
+ */
+function makeChartOptions(tooltipLineFormatter, labelCount) {
+  const n = Math.max(0, Number(labelCount) || 0);
+  const showAllX = n > 0 && n <= 32;
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -921,14 +963,16 @@ function makeChartOptions(tooltipLineFormatter) {
       x: {
         grid: { display: false },
         ticks: {
-          font: { size: 10 },
+          font: { size: showAllX ? 9 : 10 },
           color: "rgba(255,255,255,0.4)",
           maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: 8,
-          callback(val, idx) {
+          autoSkip: !showAllX,
+          maxTicksLimit: showAllX ? 40 : 9,
+          callback(tickValue, index) {
             const chart = this.chart;
-            const lbl = chart?.data?.labels?.[idx] ?? val;
+            const labels = chart?.data?.labels ?? [];
+            const i = Number.isFinite(Number(tickValue)) ? Number(tickValue) : index;
+            const lbl = labels[i] ?? tickValue;
             return formatChartTickDate(lbl);
           },
         },
@@ -995,6 +1039,10 @@ function renderCharts(data) {
   const profitCanvas = document.getElementById("profitChart");
   if (!profitCanvas) return;
 
+  const nRev = revenueSeries.labels.length;
+  const nSpe = spendSeries.labels.length;
+  const nProf = profitLabels.length;
+
   charts.revenue = new Chart(els.revenueCanvas, {
     type: "line",
     data: {
@@ -1012,7 +1060,7 @@ function renderCharts(data) {
         spanGaps: false,
       }],
     },
-    options: makeChartOptions((ctx) => `Tržby: ${money(ctx.parsed.y)}`),
+    options: makeChartOptions((ctx) => `Tržby: ${money(ctx.parsed.y)}`, nRev),
   });
 
   charts.spend = new Chart(els.spendCanvas, {
@@ -1032,7 +1080,7 @@ function renderCharts(data) {
         spanGaps: false,
       }],
     },
-    options: makeChartOptions((ctx) => `Náklady: ${money(ctx.parsed.y)}`),
+    options: makeChartOptions((ctx) => `Náklady: ${money(ctx.parsed.y)}`, nSpe),
   });
 
   charts.profit = new Chart(profitCanvas, {
@@ -1052,7 +1100,7 @@ function renderCharts(data) {
         spanGaps: false,
       }],
     },
-    options: makeChartOptions((ctx) => `Čistý zisk: ${money(ctx.parsed.y)}`),
+    options: makeChartOptions((ctx) => `Čistý zisk: ${money(ctx.parsed.y)}`, nProf),
   });
 }
 
@@ -1120,17 +1168,29 @@ async function loadDashboard() {
     renderMarginInfo(data);
     renderTopCampaigns(data.campaign_table || data.top_campaigns, be);
 
+    const chartsAxisHint = document.getElementById("chartsAxisHint");
     if (isEmptyMetrics) {
       setChartsEmptyState(true);
+      if (chartsAxisHint) {
+        chartsAxisHint.textContent = "";
+        chartsAxisHint.classList.add("hidden");
+      }
     } else {
       setChartsEmptyState(false);
       renderCharts(data);
+      if (chartsAxisHint) {
+        const last = data?.trust?.last_metric_date;
+        chartsAxisHint.textContent = last
+          ? `Poslední den v grafu odpovídá ${formatMetricDateCs(last)} (srovnejte s pruhem „Důvěra v data“).`
+          : "Konec křivky odpovídá poslednímu dni v nahraných datech.";
+        chartsAxisHint.classList.remove("hidden");
+      }
     }
 
     renderInsightsFromApi(insightsData.insights || []);
 
     const sub = document.getElementById("insightsSubtitle");
-    if (sub) sub.textContent = `Posledních ${selectedDays} dní`;
+    if (sub) sub.textContent = `Trendy za posledních ${selectedDays} dní`;
     if (!Array.isArray(campaignsForSignals) || campaignsForSignals.length === 0) {
       setStatus("Nahrajte CSV pro přehled výkonu.", "info");
       return;
@@ -1193,6 +1253,11 @@ function resetDashboardUi() {
   if (cmpReset) {
     cmpReset.innerHTML = "";
     cmpReset.classList.add("hidden");
+  }
+  const axisHintReset = document.getElementById("chartsAxisHint");
+  if (axisHintReset) {
+    axisHintReset.textContent = "";
+    axisHintReset.classList.add("hidden");
   }
   const relReset = document.getElementById("dataReliabilityBadge");
   if (relReset) {

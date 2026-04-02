@@ -886,6 +886,15 @@ body {
   letter-spacing: 0.06em;
 }
 
+.charts-grid__hint {
+  grid-column: 1 / -1;
+  margin: -2px 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: rgba(148, 163, 184, 0.95);
+}
+
 .insights-section--secondary {
   opacity: 0.98;
 }

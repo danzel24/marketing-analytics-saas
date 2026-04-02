@@ -102,7 +102,7 @@
           <div id="kpiRoasMeta" class="kpi__meta"></div>
         </div>
         <div class="card kpi">
-          <div class="kpi__label">Bod zvratu (ROAS) <span class="tooltip" data-tip="Minimální ROAS, při kterém je příspěvek po marži v nule. Počítáme jako 1 ÷ marže — stejná marže jako u „Použitá marže“ níže (např. 40 % → 2,50×).">?</span></div>
+          <div class="kpi__label">Bod zvratu (ROAS) <span class="tooltip" data-tip="Nejnižší ROAS, kde je příspěvek po marži v nule: 1 ÷ marže (viz „Použitá marže“).">?</span></div>
           <div id="kpiBreakEvenRoas" class="kpi__value">—</div>
         </div>
       </section>
@@ -116,12 +116,12 @@
         <div class="tableCard__header">
           <div>
             <h2 class="panel__title">Trendy a poznámky</h2>
-            <div class="panel__subtitle" id="insightsSubtitle">Tržby a ROAS v období</div>
+            <div class="panel__subtitle" id="insightsSubtitle">Trendy za zvolené období</div>
           </div>
         </div>
         <div id="primaryAction" class="primary-action hidden"></div>
         <ul id="insightsList" class="insights-list"></ul>
-        <div class="insights-footnote">Zdroj: nahraná CSV data</div>
+        <div class="insights-footnote">Zdroj: nahraná data</div>
       </section>
 
       <section class="card tableCard tableCard--decisions">
@@ -152,6 +152,7 @@
 
       <section class="charts-grid charts-grid--secondary charts-grid--deemphasized">
         <p class="charts-grid__label charts-grid__label--muted">Vývoj v čase</p>
+        <p id="chartsAxisHint" class="charts-grid__hint hidden" aria-live="polite"></p>
         <div class="card panel chart-container">
           <div class="panel__header">
             <h2 class="panel__title panel__title--compact">Tržby</h2>
