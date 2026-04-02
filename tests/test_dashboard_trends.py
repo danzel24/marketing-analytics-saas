@@ -7,20 +7,34 @@ from app.services.marketing_service import MarketingService
 
 
 def test_calendar_window_series_inserts_null_without_metrics() -> None:
+    """Window ends at the newest day that exists in ``present_days``, not at server today."""
     today = date.today()
-    start = today - timedelta(days=6)
-    present = {start, start + timedelta(days=1)}
+    last_data = today - timedelta(days=2)
+    first = last_data - timedelta(days=5)
+    present = {first, last_data}
     sparse = [
-        {"date": start, "value": 100.0},
-        {"date": start + timedelta(days=1), "value": 50.0},
+        {"date": first, "value": 100.0},
+        {"date": last_data, "value": 50.0},
     ]
     filled = MarketingService._calendar_window_series(sparse, days=7, present_days=present)
     assert len(filled) == 7
-    assert filled[0]["value"] == 100.0
-    assert filled[1]["value"] == 50.0
+    assert filled[-1]["date"] == last_data
+    assert filled[-1]["value"] == 50.0
+    # Middle days without rows: gap, not 0
+    assert any(r["value"] is None for r in filled)
+
+
+def test_calendar_window_series_ends_today_when_data_includes_today() -> None:
+    today = date.today()
+    start = today - timedelta(days=6)
+    present = {start, start + timedelta(days=1), today}
+    sparse = [
+        {"date": start, "value": 10.0},
+        {"date": today, "value": 99.0},
+    ]
+    filled = MarketingService._calendar_window_series(sparse, days=7, present_days=present)
     assert filled[-1]["date"] == today
-    # No metric rows on last day → gap, not 0
-    assert filled[-1]["value"] is None
+    assert filled[-1]["value"] == 99.0
 
 
 def test_finite_series_values_skips_nulls() -> None:

@@ -270,7 +270,12 @@ function getStatusMeta(status) {
     case "loss":
       return { label: "Ztrátová", class: "roas-low", insightType: "danger", icon: "❌" };
     case "at_risk":
-      return { label: "Na hraně", class: "roas-medium", insightType: "warning", icon: "⚠️" };
+      return {
+        label: "Mírně pod bodem zvratu",
+        class: "roas-medium",
+        insightType: "warning",
+        icon: "⚠️",
+      };
     case "profitable":
       return { label: "Zisková", class: "roas-high", insightType: "positive", icon: "✅" };
     case "insufficient_data":
@@ -331,7 +336,7 @@ function humanizeCampaignName(raw) {
 function shortTableReason(status) {
   const st = String(status || "");
   if (st === "profitable") return "ROAS nad BE";
-  if (st === "at_risk") return "ROAS u BE";
+  if (st === "at_risk") return "Těsně pod BE";
   if (st === "loss") return "ROAS pod BE";
   if (st === "insufficient_data") return "—";
   return "—";
@@ -421,7 +426,7 @@ function renderRiskBanner(campaigns, breakEven) {
 
   if (riskCount > 0 && revenueAtRisk > 0) {
     els.riskBannerText.innerHTML =
-      `⚠️ ${moneyStrong(money(revenueAtRisk))} tržeb visí na hraně zisku`;
+      `⚠️ ${moneyStrong(money(revenueAtRisk))} tržeb je těsně u bodu zvratu`;
     els.riskBannerSub.textContent =
       `Pod ${roasFmt(be)} začnete prodělávat`;
     els.riskBanner.classList.remove("hidden");
@@ -713,12 +718,12 @@ function renderPeriodComparison(overview) {
 function dataReliabilityTip(tier) {
   const t = String(tier || "");
   if (t === "high") {
-    return "Vyšší: více dat v období, stabilnější vzorek pro vyhodnocení.";
+    return "Vysoká: delší období a stabilnější vzorek — silnější signál pro rozhodování.";
   }
   if (t === "medium") {
-    return "Střední: použitelný odhad, výsledky berte jako orientační.";
+    return "Střední: použitelný odhad z dostupných dat; výsledky berte jako orientační.";
   }
-  return "Nižší: málo dat nebo krátké období, slabší signál.";
+  return "Nízká: málo dat nebo krátké období — slabší signál, interpretujte opatrně.";
 }
 
 function renderDataReliabilityBadge(overview) {
@@ -739,7 +744,7 @@ function renderDataReliabilityBadge(overview) {
   const tip = dataReliabilityTip(tier);
   const tipEsc = escapeHtml(tip);
   el.classList.remove("hidden");
-  el.innerHTML = `Spolehlivost dat: ${escapeHtml(label)} <span class="tooltip" data-tip="${tipEsc}">?</span>`;
+  el.innerHTML = `<span class="data-reliability-badge__label">Spolehlivost dat: ${escapeHtml(label)}</span> <button type="button" class="tooltip tooltip--btn" data-tip="${tipEsc}" aria-label="${tipEsc}">i</button>`;
 }
 
 function setDashboardLoading(on) {

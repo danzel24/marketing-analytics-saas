@@ -108,13 +108,18 @@ class MarketingService:
         present_days: set[date],
     ) -> list[dict[str, object]]:
         """
-        Last ``days`` calendar days ending today, chronological order.
+        Last ``days`` calendar days in chronological order.
+
+        The window ends at ``min(today, max(present_days))`` when ``present_days`` is non-empty,
+        so charts do not extend past the newest day that exists in the dataset (uploaded CSV).
 
         Days with **no** metric rows in the window use ``value: None`` (chart gap — never fake zero).
         Days with at least one row use the aggregated float (zero is a real zero).
         """
         n = max(int(days), 1)
         end = date.today()
+        if present_days:
+            end = min(end, max(present_days))
         start = end - timedelta(days=n - 1)
         by_day: dict[date, float] = defaultdict(float)
         for item in sparse:
@@ -255,7 +260,7 @@ class MarketingService:
 
         if status == "at_risk":
             return {
-                "reason": "Kampaň je na hraně zisku",
+                "reason": "Kampaň je mírně pod bodem zvratu (v pásmu tolerance)",
                 "details": {
                     "roas": roas,
                     "break_even_roas": break_even,
@@ -540,13 +545,13 @@ class MarketingService:
 
         if status == "at_risk":
             cut = max(reduction_pct, 15)
-            rec_status = "⚠️ Na hraně"
+            rec_status = "⚠️ Mírně pod bodem zvratu"
             rec_action = "Snižte budget"
             if dt > 0 and dbe > 0:
                 rec_reason = f"ROAS {roas:.2f}× u bodu zvratu {break_even:.2f}× · {dbe}/{dt} dní pod BE"
             else:
                 rec_reason = f"ROAS {roas:.2f}× u bodu zvratu {break_even:.2f}×"
-            msg = "Snižte budget — jste u bodu zvratu."
+            msg = "Snižte budget — jste těsně u bodu zvratu."
             return {
                 "type": "warning",
                 "severity": "warning",
@@ -1388,6 +1393,8 @@ class MarketingService:
             spend_by_day[d] += MarketingService._non_negative_money(float(getattr(m, "spend", 0) or 0))
         n = max(int(days), 1)
         end = date.today()
+        if present:
+            end = min(end, max(present))
         start = end - timedelta(days=n - 1)
         labels: list[str] = []
         values: list[float | None] = []
@@ -1530,8 +1537,8 @@ class MarketingService:
         Same time window and campaign rows as the table (``top_campaigns_db``).
 
         Sums ``|contribution_profit|`` for paid campaigns with **negative** contribution in the window.
-        This matches rows that are economically below break-even, including ``at_risk`` („Na hraně“)
-        when profit after margin is still negative — not only ``loss`` (ROAS < 0.9× BE).
+        This matches rows that are economically below break-even, including ``at_risk``
+        (mírně pod bodem zvratu) when profit after margin is still negative — not only ``loss`` (ROAS < 0.9× BE).
         """
         self._db_requirements()
         cid = require_positive_client_id(client_id)

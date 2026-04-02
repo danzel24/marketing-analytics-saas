@@ -690,6 +690,25 @@ body {
   vertical-align: middle;
 }
 
+.data-reliability-badge__label {
+  min-width: 0;
+}
+
+.tooltip.tooltip--btn {
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.tooltip.tooltip--btn:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.85);
+  outline-offset: 2px;
+}
+
 .kpi-period-comparison-wrap {
   margin: 0 0 12px;
 }
