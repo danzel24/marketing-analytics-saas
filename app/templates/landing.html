@@ -31,18 +31,41 @@
     </header>
 
     <main class="landing-main">
-      <section class="landing-hero">
-        <h1 class="landing-hero__title">Marketingový přehled pro rychlé rozhodování o kampaních</h1>
-        <p class="landing-hero__lead">
-          Tržby, náklady, ROAS a doporučení na jednom místě — pro jednoduchá rozhodnutí, ne pro prohrabávání tabulek.
-        </p>
-        <div class="landing-cta-row" role="group" aria-label="Začít používat">
-          <a class="btn btn--primary" href="/register">Registrovat se</a>
-          <a class="btn landing-btn-outline" href="/login">Přihlásit se a otevřít přehled</a>
+      <section class="landing-hero landing-hero--split" aria-labelledby="landing-hero-heading">
+        <div class="landing-hero__grid">
+          <div class="landing-hero__copy">
+            <h1 id="landing-hero-heading" class="landing-hero__title">
+              Marketingový přehled pro rychlé rozhodování o kampaních
+            </h1>
+            <p class="landing-hero__lead">
+              Tržby, náklady, ROAS a doporučení na jednom místě — pro jednoduchá rozhodnutí, ne pro prohrabávání tabulek.
+            </p>
+            <div class="landing-cta-row" role="group" aria-label="Začít používat">
+              <a class="btn btn--primary" href="/register">Registrovat se</a>
+              <a class="btn landing-btn-outline" href="/login">Přihlásit se</a>
+            </div>
+            <p class="landing-hero__note">
+              Přehled je dostupný po přihlášení. Data nahráváte jako CSV do vlastního účtu.
+            </p>
+          </div>
+          <div class="landing-hero__visual">
+            <figure class="landing-hero-preview">
+              <div class="landing-hero-preview__frame">
+                <img
+                  class="landing-hero-preview__img"
+                  src="/static/images/dashboard-preview.png"
+                  alt="Náhled přehledu v aplikaci: KPI, grafy vývoje a tabulka kampaní"
+                  width="1200"
+                  height="720"
+                  loading="eager"
+                  decoding="async"
+                  onerror="this.classList.add('landing-hero-preview__img--fallback')"
+                />
+              </div>
+              <figcaption class="landing-hero-preview__caption">Ukázka přehledu po importu dat</figcaption>
+            </figure>
+          </div>
         </div>
-        <p class="landing-hero__note">
-          Přehled je dostupný po přihlášení. Data nahráváte jako CSV do vlastního účtu.
-        </p>
       </section>
 
       <section class="landing-section" aria-labelledby="landing-benefits-heading">
