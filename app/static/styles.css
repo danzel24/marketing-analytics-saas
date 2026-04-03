@@ -1808,8 +1808,8 @@ body {
 
 .landing-hero__grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.22fr);
-  gap: clamp(32px, 4.5vw, 56px);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.28fr);
+  gap: clamp(34px, 5vw, 58px);
   align-items: center;
 }
 
@@ -1875,7 +1875,7 @@ body {
 
 @media (min-width: 901px) {
   .landing-hero__visual {
-    padding-left: 4px;
+    padding-left: 2px;
   }
 }
 
@@ -1889,7 +1889,7 @@ body {
   border-radius: 14px;
   overflow: hidden;
   aspect-ratio: 5 / 3;
-  min-height: 228px;
+  min-height: 240px;
   background: linear-gradient(
     160deg,
     rgba(30, 41, 59, 0.88) 0%,
@@ -1949,7 +1949,7 @@ body {
   }
 
   .landing-hero-preview__frame {
-    min-height: 200px;
+    min-height: 204px;
   }
 }
 
