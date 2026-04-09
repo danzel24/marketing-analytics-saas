@@ -296,11 +296,46 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _on_startup() -> None:
-        configure_structured_logging()
-        validate_startup_config()
-        log_database_startup(logger)
-        log_web_paths(logger)
-        create_db_and_tables()
+        logger.info("startup_step step=configure_structured_logging status=begin")
+        try:
+            configure_structured_logging()
+        except Exception:
+            logger.exception("startup_step step=configure_structured_logging status=failed")
+            raise
+        logger.info("startup_step step=configure_structured_logging status=done")
+
+        logger.info("startup_step step=validate_startup_config status=begin")
+        try:
+            validate_startup_config()
+        except Exception:
+            logger.exception("startup_step step=validate_startup_config status=failed")
+            raise
+        logger.info("startup_step step=validate_startup_config status=done")
+
+        logger.info("startup_step step=log_database_startup status=begin")
+        try:
+            log_database_startup(logger)
+        except Exception:
+            logger.exception("startup_step step=log_database_startup status=failed")
+            raise
+        logger.info("startup_step step=log_database_startup status=done")
+
+        logger.info("startup_step step=log_web_paths status=begin")
+        try:
+            log_web_paths(logger)
+        except Exception:
+            logger.exception("startup_step step=log_web_paths status=failed")
+            raise
+        logger.info("startup_step step=log_web_paths status=done")
+
+        logger.info("startup_step step=create_db_and_tables status=begin")
+        try:
+            create_db_and_tables()
+        except Exception:
+            logger.exception("startup_step step=create_db_and_tables status=failed")
+            raise
+        logger.info("startup_step step=create_db_and_tables status=done")
+
         s = get_startup_settings()
         logger.info(
             "startup app_env=%s production=%s cookie_secure=%s cookie_samesite=%s "

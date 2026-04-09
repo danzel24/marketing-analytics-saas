@@ -82,9 +82,25 @@ def run_alembic_upgrade() -> None:
     """Apply Alembic migrations to head (SQLite / PostgreSQL-ready URL)."""
     root = Path(__file__).resolve().parents[1]
     ini = root / "alembic.ini"
-    cfg = AlembicConfig(str(ini))
-    cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
-    command.upgrade(cfg, "head")
+    logger.info(
+        "alembic_upgrade status=begin project_root=%s alembic_ini=%s ini_exists=%s",
+        root,
+        ini,
+        ini.is_file(),
+    )
+    try:
+        cfg = AlembicConfig(str(ini))
+        cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
+        logger.info("alembic_upgrade status=running command.upgrade head")
+        command.upgrade(cfg, "head")
+    except Exception:
+        logger.exception(
+            "alembic_upgrade status=failed project_root=%s alembic_ini=%s",
+            root,
+            ini,
+        )
+        raise
+    logger.info("alembic_upgrade status=done")
 
 
 def create_db_and_tables() -> None:
@@ -94,10 +110,21 @@ def create_db_and_tables() -> None:
     Runtime ``CREATE INDEX`` / one-off ALTER hacks were replaced by idempotent Alembic baseline
     where possible; remaining PRAGMA checks cover pre-migration SQLite DBs missing columns.
     """
-    run_alembic_upgrade()
-    if _is_sqlite_url(DATABASE_URL):
-        _ensure_user_token_version_column()
-        _ensure_client_margin_column()
+    logger.info(
+        "create_db_and_tables status=begin backend=%s",
+        make_url(DATABASE_URL).drivername,
+    )
+    try:
+        run_alembic_upgrade()
+        if _is_sqlite_url(DATABASE_URL):
+            logger.info("create_db_and_tables sqlite_legacy_columns status=begin")
+            _ensure_user_token_version_column()
+            _ensure_client_margin_column()
+            logger.info("create_db_and_tables sqlite_legacy_columns status=done")
+    except Exception:
+        logger.exception("create_db_and_tables status=failed")
+        raise
+    logger.info("create_db_and_tables status=done")
 
 
 def _ensure_user_token_version_column() -> None:
