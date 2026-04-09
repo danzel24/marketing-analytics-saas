@@ -58,6 +58,16 @@ class EmailAlreadyRegisteredError(AppError):
         super().__init__(status_code=400, code=ErrorCode.EMAIL_ALREADY_REGISTERED, message=message)
 
 
+class ClientNameAlreadyExistsError(AppError):
+    """Registration: workspace/company name is already used by another organization."""
+
+    def __init__(
+        self,
+        message: str = "This workspace or company name is already taken. Choose a different name.",
+    ) -> None:
+        super().__init__(status_code=409, code=ErrorCode.CLIENT_NAME_ALREADY_TAKEN, message=message)
+
+
 class ForbiddenError(AppError):
     def __init__(self, message: str = "Forbidden", code: ErrorCodeLike = ErrorCode.FORBIDDEN) -> None:
         super().__init__(status_code=403, code=code, message=message)
