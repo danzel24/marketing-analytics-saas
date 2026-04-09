@@ -428,7 +428,7 @@ class CSVService:
             default_campaign = self.get_or_create_default_campaign(client_id)
             return default_campaign.id
 
-        existing = self.campaign_repo.get_by_name(client_id, campaign_name)
+        existing = self.campaign_repo.get_by_name_and_platform(client_id, campaign_name, "imported")
         if existing:
             return existing.id
 
@@ -453,7 +453,7 @@ class CSVService:
             return created.id
         except IntegrityError:
             self.campaign_repo.session.rollback()
-            again = self.campaign_repo.get_by_name(cid, campaign_name)
+            again = self.campaign_repo.get_by_name_and_platform(cid, campaign_name, "imported")
             if again is not None:
                 return again.id
             logger.exception(
@@ -479,7 +479,9 @@ class CSVService:
         return default_campaign.id, None
 
     def get_or_create_default_campaign(self, client_id: int) -> Campaign:
-        campaign = self.campaign_repo.get_by_name(client_id, DEFAULT_IMPORT_CAMPAIGN_NAME)
+        campaign = self.campaign_repo.get_by_name_and_platform(
+            client_id, DEFAULT_IMPORT_CAMPAIGN_NAME, "imported"
+        )
         if campaign:
             return campaign
         return self.campaign_repo.create_for_client(

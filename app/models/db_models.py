@@ -28,6 +28,8 @@ class User(SQLModel, table=True):
 
 
 class Campaign(SQLModel, table=True):
+    """Rows are scoped by (client_id, platform, name) in application logic; not only by name."""
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     platform: str = Field(index=True)

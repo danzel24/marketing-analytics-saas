@@ -37,9 +37,15 @@ class CampaignRepository:
         stmt = select(Campaign).where(Campaign.id == campaign_id).where(Campaign.client_id == cid)
         return self.session.exec(stmt).first()
 
-    def get_by_name(self, client_id: int, name: str) -> Campaign | None:
+    def get_by_name_and_platform(self, client_id: int, name: str, platform: str) -> Campaign | None:
+        """Lookup by tenant + platform + name so identically named campaigns on different platforms stay distinct."""
         cid = require_positive_client_id(client_id)
-        stmt = select(Campaign).where(Campaign.client_id == cid).where(Campaign.name == name)
+        stmt = (
+            select(Campaign)
+            .where(Campaign.client_id == cid)
+            .where(Campaign.name == name)
+            .where(Campaign.platform == platform)
+        )
         return self.session.exec(stmt).first()
 
     def list_for_client(self, client_id: int, *, offset: int = 0, limit: int = 100_000) -> list[Campaign]:

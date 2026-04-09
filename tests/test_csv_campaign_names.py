@@ -1,4 +1,4 @@
-"""Campaign name resolution for custom_name CSV import (multi-tenant)."""
+"""Campaign name resolution for custom_name CSV import (multi-tenant, platform-scoped)."""
 
 from unittest.mock import MagicMock
 
@@ -25,20 +25,40 @@ def test_resolve_empty_name_uses_default_campaign(csv_service: CSVService, campa
 
     assert csv_service._resolve_campaign_by_name("", 1) == 7
     csv_service.get_or_create_default_campaign.assert_called_once_with(1)
-    campaign_repo.get_by_name.assert_not_called()
+    campaign_repo.get_by_name_and_platform.assert_not_called()
 
 
-def test_resolve_existing_name_returns_id(csv_service: CSVService, campaign_repo: MagicMock) -> None:
-    existing = Campaign(id=42, name="Summer Sale", platform="google", client_id=1)
-    campaign_repo.get_by_name.return_value = existing
+def test_resolve_existing_imported_name_returns_id(csv_service: CSVService, campaign_repo: MagicMock) -> None:
+    existing = Campaign(id=42, name="Summer Sale", platform="imported", client_id=1)
+    campaign_repo.get_by_name_and_platform.return_value = existing
 
     assert csv_service._resolve_campaign_by_name("Summer Sale", 1) == 42
-    campaign_repo.get_by_name.assert_called_once_with(1, "Summer Sale")
+    campaign_repo.get_by_name_and_platform.assert_called_once_with(1, "Summer Sale", "imported")
     campaign_repo.create_for_client.assert_not_called()
 
 
+def test_resolve_same_name_other_platform_creates_import_campaign(
+    csv_service: CSVService, campaign_repo: MagicMock
+) -> None:
+    """Google/Meta campaign with the same name must not satisfy CSV import lookup."""
+    campaign_repo.get_by_name_and_platform.return_value = None
+    created = Campaign(id=99, name="Summer Sale", platform="imported", client_id=1)
+    campaign_repo.create_for_client.return_value = created
+
+    assert csv_service._resolve_campaign_by_name("Summer Sale", 1) == 99
+    campaign_repo.get_by_name_and_platform.assert_called_once_with(1, "Summer Sale", "imported")
+    campaign_repo.create_for_client.assert_called_once()
+    args, _kwargs = campaign_repo.create_for_client.call_args
+    assert args[0] == 1
+    c = args[1]
+    assert isinstance(c, Campaign)
+    assert c.name == "Summer Sale"
+    assert c.platform == "imported"
+    assert c.client_id == 1
+
+
 def test_resolve_new_name_creates_import_campaign(csv_service: CSVService, campaign_repo: MagicMock) -> None:
-    campaign_repo.get_by_name.return_value = None
+    campaign_repo.get_by_name_and_platform.return_value = None
     created = Campaign(id=99, name="New Promo", platform="imported", client_id=1)
     campaign_repo.create_for_client.return_value = created
 
@@ -54,7 +74,7 @@ def test_resolve_new_name_creates_import_campaign(csv_service: CSVService, campa
 
 
 def test_resolve_integrity_error_fetches_existing(csv_service: CSVService, campaign_repo: MagicMock) -> None:
-    campaign_repo.get_by_name.side_effect = [
+    campaign_repo.get_by_name_and_platform.side_effect = [
         None,
         Campaign(id=3, name="Race", platform="imported", client_id=1),
     ]
@@ -66,7 +86,7 @@ def test_resolve_integrity_error_fetches_existing(csv_service: CSVService, campa
 
 
 def test_resolve_integrity_no_row_returns_none(csv_service: CSVService, campaign_repo: MagicMock) -> None:
-    campaign_repo.get_by_name.return_value = None
+    campaign_repo.get_by_name_and_platform.return_value = None
     campaign_repo.create_for_client.side_effect = IntegrityError("stmt", "params", Exception("orig"))
     campaign_repo.session = MagicMock()
 

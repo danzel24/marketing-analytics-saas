@@ -31,18 +31,26 @@
       <div class="card login-card auth-card auth-card--wide">
         <h1 class="auth-card__title">Nahrát CSV s tržbami</h1>
         <p class="login-subtitle">
-          Soubor musí být v UTF-8. Oddělovač může být čárka, středník nebo tabulátor — aplikace ho pozná z hlavičky.
+          Nahrajte <strong>jeden</strong> soubor CSV v UTF-8. Oddělovač může být čárka, středník nebo tabulátor — aplikace ho pozná z hlavičky.
         </p>
 
         <section class="upload-onboarding card" aria-labelledby="uploadOnboardingTitle">
-          <h2 id="uploadOnboardingTitle" class="upload-onboarding__title">Formát CSV</h2>
+          <h2 id="uploadOnboardingTitle" class="upload-onboarding__title">Formát CSV (MVP)</h2>
           <p class="upload-onboarding__text">
-            V každém řádku potřebujeme <strong>datum</strong>, <strong>kampaň</strong> (název), <strong>tržby</strong> a
-            <strong>náklady na reklamu</strong>. Názvy sloupců poznáme i v češtině (např. „náklady“, „výdaje“).
+            Backend očekává <strong>už sjednocený</strong> export: v každém řádku <strong>datum</strong>, <strong>kampaň</strong> (název),
+            <strong>tržby</strong> a <strong>náklady na reklamu</strong> za ten den u dané kampaně. Názvy sloupců umíme mapovat i z češtiny
+            (např. „náklady“, „výdaje“) podle podporovaných formátů v aplikaci.
+          </p>
+          <p class="upload-onboarding__text">
+            Tento krok <strong>neslučuje automaticky</strong> samostatné exporty z e-shopu, Meta a Google do jedné tabulky — pokud máte data
+            v oddělených souborech, je potřeba je před nahráním připravit do jednoho CSV (např. v tabulkovém editoru).
           </p>
           <p class="upload-onboarding__label">Příklad hlavičky (minimální varianta):</p>
           <pre class="upload-onboarding__code" role="text">date,campaign,revenue,spend</pre>
-          <p class="upload-onboarding__footnote">Každý řádek = jeden den u jedné kampaně. Stejná kampaň může mít více řádků pro různé dny.</p>
+          <p class="upload-onboarding__footnote">
+            Každý řádek = jeden den u jedné kampaně. Stejná kampaň může mít více řádků pro různé dny. Pro pilotní provoz: ověřte si u svého exportu,
+            že sloupce odpovídají očekávanému tvaru — jinak import může selhat nebo vyžádat úpravu souboru.
+          </p>
         </section>
 
         <div id="uploadClearedBanner" class="alert alert--success hidden" role="status" aria-live="polite"></div>

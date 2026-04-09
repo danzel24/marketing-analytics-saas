@@ -127,7 +127,7 @@ class IntegrationService:
         }
 
     def _get_or_create_google_campaign(self, client_id: int, name: str) -> Campaign:
-        existing = self._campaign_repo.get_by_name(client_id, name)
+        existing = self._campaign_repo.get_by_name_and_platform(client_id, name, GOOGLE_ADS_PLATFORM)
         if existing:
             return existing
         return self._campaign_repo.create_for_client(

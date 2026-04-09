@@ -40,18 +40,26 @@ class UserRepository:
         session.refresh(user)
         return user
 
-    def get_or_create_client_unscoped_internal(
+    def client_name_exists_unscoped_internal(
+        self,
+        session: Session,
+        *,
+        name: str,
+        _internal_call: bool = False,
+    ) -> bool:
+        """INTERNAL USE ONLY. True if a Client row already uses this exact name (global unique)."""
+        require_internal_call(_internal_call=_internal_call)
+        return session.exec(select(Client).where(Client.name == name)).first() is not None
+
+    def create_client_unscoped_internal(
         self,
         session: Session,
         *,
         name: str,
         _internal_call: bool = False,
     ) -> Client:
-        """INTERNAL USE ONLY – NOT SAFE FOR MULTI-TENANT ACCESS. Registration bootstrap."""
+        """INTERNAL USE ONLY – NOT SAFE FOR MULTI-TENANT ACCESS. Create a new tenant; caller must check uniqueness."""
         require_internal_call(_internal_call=_internal_call)
-        client = session.exec(select(Client).where(Client.name == name)).first()
-        if client:
-            return client
         client = Client(name=name)
         session.add(client)
         session.commit()
