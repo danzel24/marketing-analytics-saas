@@ -40,6 +40,11 @@
       const fresh = res.headers.get("x-access-token");
       if (fresh) window.setToken(fresh);
       if (!res.ok) {
+        if (res.status === 409 && data && data.error && data.error.code === "CLIENT_NAME_ALREADY_TAKEN") {
+          err.textContent =
+            "Tento název firmy nebo pracovního prostoru je již obsazený. Zvolte prosím jiný název.";
+          return;
+        }
         err.textContent = window.apiErrorMessage(data);
         return;
       }

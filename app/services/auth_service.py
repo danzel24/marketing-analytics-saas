@@ -5,6 +5,7 @@ import random
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
 from app.core.security import (
@@ -22,6 +23,7 @@ from app.repositories.tenant_scope import require_positive_client_id
 from app.repositories.user_repository import UserRepository
 
 from app.core.domain_errors import (
+    ClientNameAlreadyExistsError,
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     UnauthorizedError,
@@ -100,15 +102,25 @@ class AuthService:
     def register(self, session: Session, *, email: str, password: str, client_name: str) -> User:
         if self.repo.get_by_email_unscoped_internal(session, email, _internal_call=True):
             raise EmailAlreadyRegisteredError()
-        client = self.repo.get_or_create_client_unscoped_internal(
-            session, name=client_name, _internal_call=True
-        )
-        user = self.repo.create_user(
-            session,
-            email=email,
-            password_hash=hash_password(password),
-            client_id=client.id,  # type: ignore[arg-type]
-        )
+        if self.repo.client_name_exists_unscoped_internal(session, name=client_name, _internal_call=True):
+            raise ClientNameAlreadyExistsError()
+        try:
+            client = self.repo.create_client_unscoped_internal(
+                session, name=client_name, _internal_call=True
+            )
+        except IntegrityError:
+            session.rollback()
+            raise ClientNameAlreadyExistsError() from None
+        try:
+            user = self.repo.create_user(
+                session,
+                email=email,
+                password_hash=hash_password(password),
+                client_id=client.id,  # type: ignore[arg-type]
+            )
+        except IntegrityError:
+            session.rollback()
+            raise EmailAlreadyRegisteredError() from None
         return user
 
     def authenticate(self, session: Session, *, email: str, password: str) -> User:
