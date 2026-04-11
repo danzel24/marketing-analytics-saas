@@ -20,6 +20,20 @@ class ClearImportedIn(BaseModel):
     confirm: str = Field(..., min_length=1, description="Must equal the server constant for this action.")
 
 
+@router.post("/revenue-csv/preview")
+async def preview_revenue_csv_upload(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Parse CSV and return sample rows without persisting (same rules as import)."""
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = CSVService(campaign_repo, metric_repo)
+    return service.preview_revenue_csv_bytes(raw)
+
+
 @router.post("/revenue-csv")
 async def upload_revenue_csv(
     file: UploadFile = File(...),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import re
 from datetime import date, datetime
+from typing import Any
 from io import StringIO
 import logging
 import unicodedata
@@ -79,11 +80,48 @@ class CSVService:
         try:
             content_str = raw.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
-            raise ValidationError("CSV musí být v kódování UTF-8.", code=ErrorCode.CSV_ENCODING) from exc
+            raise ValidationError(
+                "Soubor musí být v kódování UTF-8. Při exportu z Excelu zvolte „CSV UTF-8 (oddělené čárkou)“ "
+                "nebo v Google Tabulkách: Soubor → Stáhnout → CSV.",
+                code=ErrorCode.CSV_ENCODING,
+            ) from exc
         return self.import_revenue_csv(content_str, client_id)
 
-    def import_revenue_csv(self, content: str, client_id: int) -> dict[str, int | str | list[dict[str, object]]]:
-        self._require_tenant_client_id(client_id)
+    def preview_revenue_csv_bytes(self, raw: bytes) -> dict[str, Any]:
+        """Parse CSV and return sample rows without writing to the database."""
+        if not isinstance(raw, (bytes, bytearray)):
+            raise ValidationError("Soubor není načten.", code=ErrorCode.CSV_NOT_LOADED)
+        if len(raw) > MAX_CSV_UPLOAD_BYTES:
+            raise ValidationError("CSV je příliš velké (max. 15 MB).", code=ErrorCode.CSV_TOO_LARGE)
+        try:
+            content_str = raw.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise ValidationError(
+                "Soubor musí být v kódování UTF-8. Při exportu z Excelu zvolte „CSV UTF-8 (oddělené čárkou)“ "
+                "nebo v Google Tabulkách: Soubor → Stáhnout → CSV.",
+                code=ErrorCode.CSV_ENCODING,
+            ) from exc
+        rows, headers, header_map, detected_format = self._load_revenue_csv_rows(content_str)
+        preview_rows = [
+            self._build_preview_row(row, detected_format, header_map, idx)
+            for idx, row in enumerate(rows[:8], start=2)
+        ]
+        return {
+            "detected_format": detected_format,
+            "format_description": self._format_description_for_user(detected_format),
+            "headers": headers,
+            "total_data_rows": len(rows),
+            "preview_rows": preview_rows,
+        }
+
+    def _load_revenue_csv_rows(
+        self, content: str
+    ) -> tuple[list[dict[str, str]], list[str], dict[str, str], str]:
+        if not (content or "").strip():
+            raise ValidationError(
+                "Soubor je prázdný. Nahrajte CSV s hlavičkou a alespoň jedním datovým řádkem.",
+                code=ErrorCode.CSV_NO_DATA,
+            )
         raw_lines = content.splitlines()
         header_line = next(
             (
@@ -94,7 +132,10 @@ class CSVService:
             "",
         )
         if not header_line:
-            raise ValidationError("CSV je prázdné nebo neobsahuje hlavičku.", code=ErrorCode.CSV_HEADER_MISSING)
+            raise ValidationError(
+                "CSV neobsahuje čitelnou hlavičku sloupců. Zkontrolujte, že první neprázdný řádek obsahuje názvy sloupců.",
+                code=ErrorCode.CSV_HEADER_MISSING,
+            )
 
         delimiter = ","
         if header_line.count(";") > header_line.count(","):
@@ -112,18 +153,30 @@ class CSVService:
             cleaned_lines.append(stripped)
 
         if not cleaned_lines:
-            raise ValidationError("CSV neobsahuje žádná data.", code=ErrorCode.CSV_NO_DATA)
+            raise ValidationError(
+                "Po vynechání prázdných řádků nezbývají žádná data. Soubor je pravděpodobně prázdný.",
+                code=ErrorCode.CSV_NO_DATA,
+            )
 
         reader = csv.DictReader(StringIO("\n".join(cleaned_lines)), delimiter=delimiter)
         rows = list(reader)
-        headers = reader.fieldnames or []
+        headers = list(reader.fieldnames or [])
         if not headers:
-            raise ValidationError("CSV je prázdné nebo neobsahuje hlavičku.", code=ErrorCode.CSV_HEADER_MISSING)
+            raise ValidationError(
+                "CSV neobsahuje hlavičku sloupců.",
+                code=ErrorCode.CSV_HEADER_MISSING,
+            )
+        self._maybe_raise_suspect_single_column_delimiter(headers, rows)
 
         normalized_headers = [self._normalize_header(h) for h in headers]
         normalized_set = set(normalized_headers)
         header_map = {self._normalize_header(h): h for h in headers}
-        detected_format = self._detect_format(normalized_set, header_map)
+        detected_format = self._detect_format(normalized_set, header_map, headers)
+        return rows, headers, header_map, detected_format
+
+    def import_revenue_csv(self, content: str, client_id: int) -> dict[str, int | str | list[dict[str, object]]]:
+        self._require_tenant_client_id(client_id)
+        rows, _headers, header_map, detected_format = self._load_revenue_csv_rows(content)
 
         normalized_rows: list[dict[str, object]] = []
         errors: list[dict[str, object]] = []
@@ -142,7 +195,8 @@ class CSVService:
                 errors.append(
                     {
                         "row": index,
-                        "reason": reason or "Nevalidní řádek nebo nepodporovaný formát hodnot.",
+                        "reason": reason
+                        or "Řádek se nepodařilo zpracovat — zkontrolujte datum, čísla a sloupce podle nápovědy na stránce importu.",
                         "data": row,
                     }
                 )
@@ -314,7 +368,7 @@ class CSVService:
         parsed = self.parse_currency(raw)
         if parsed is None:
             logger.warning("CSV row %s: spend/cost hodnota nejde parsovat: %r", row_index, spend_raw)
-            return None, "Neplatná hodnota nákladů (spend/cost)."
+            return None, "Neplatné náklady (spend/cost) — očekáváno číslo, např. 500 nebo 500,00 Kč (bez nesmyslného textu)."
         return float(parsed), None
 
     def _parse_row(
@@ -338,13 +392,15 @@ class CSVService:
             spend, spend_err = self._parse_spend_value(spend_raw, row_index=row_index)
             campaign_id, reason = self._resolve_campaign_id(campaign_id_raw, client_id)
             if metric_date is None:
-                return None, "Neplatné datum."
+                return None, (
+                    "Neplatné datum — použijte např. 2026-04-01, 01.04.2026 nebo 01/04/2026 (v buňce jen datum, ne text)."
+                )
             if revenue is None:
-                return None, "Neplatná hodnota revenue."
+                return None, "Neplatné tržby (revenue) — očekáváno číslo, např. 1250 nebo 1 250,50 Kč."
             if spend_err:
                 return None, spend_err
             if spend is None:
-                return None, "Neplatná hodnota nákladů."
+                return None, "Neplatné náklady — očekáváno číslo v sloupci spend/cost."
             if campaign_id is None:
                 return None, reason or "Neplatné campaign_id."
             return {"date": metric_date, "campaign_id": campaign_id, "revenue": revenue, "spend": spend}, None
@@ -361,15 +417,17 @@ class CSVService:
             spend, spend_err = self._parse_spend_value(spend_raw, row_index=row_index)
             campaign_id = self._resolve_campaign_by_name(campaign_name, client_id)
             if metric_date is None:
-                return None, "Neplatné datum."
+                return None, (
+                    "Neplatné datum — použijte např. 2026-04-01, 01.04.2026 nebo 01/04/2026 (v buňce jen datum, ne text)."
+                )
             if revenue is None:
-                return None, "Neplatná hodnota revenue."
+                return None, "Neplatné tržby (revenue) — očekáváno číslo, např. 1250 nebo 1 250,50 Kč."
             if spend_err:
                 return None, spend_err
             if spend is None:
-                return None, "Neplatná hodnota nákladů."
+                return None, "Neplatné náklady — očekáváno číslo v sloupci spend/cost."
             if campaign_id is None:
-                return None, "Nepodařilo se určit kampaň."
+                return None, "Nepodařilo se určit kampaň (chyba při vytváření nebo načtení kampaně pro import)."
             return {"date": metric_date, "campaign_id": campaign_id, "revenue": revenue, "spend": spend}, None
 
         if fmt == "shopify":
@@ -380,9 +438,9 @@ class CSVService:
             default_campaign = self.get_or_create_default_campaign(client_id)
             campaign_id = default_campaign.id
             if metric_date is None:
-                return None, "Neplatné datum Shopify."
+                return None, "Neplatné datum ve sloupci Created at — očekává se datum/čas ISO (např. 2026-03-01T10:15:00+00:00)."
             if revenue is None:
-                return None, "Neplatná hodnota revenue (Shopify)."
+                return None, "Neplatné tržby (Total/Subtotal) — očekáváno číslo."
             if campaign_id is None:
                 return None, "Nepodařilo se vytvořit výchozí kampaň."
             return {"date": metric_date, "campaign_id": campaign_id, "revenue": revenue, "spend": 0.0}, None
@@ -395,16 +453,55 @@ class CSVService:
             default_campaign = self.get_or_create_default_campaign(client_id)
             campaign_id = default_campaign.id
             if metric_date is None:
-                return None, "Neplatné datum Shoptet."
+                return None, "Neplatné datum ve sloupci Datum — použijte např. 2026-04-01 nebo 01.04.2026."
             if revenue is None:
-                return None, "Neplatná hodnota revenue (Shoptet)."
+                return None, "Neplatné tržby ve sloupci tržba/cena — očekáváno číslo."
             if campaign_id is None:
                 return None, "Nepodařilo se vytvořit výchozí kampaň."
             return {"date": metric_date, "campaign_id": campaign_id, "revenue": revenue, "spend": 0.0}, None
 
         return None, "Nepodporovaný formát."
 
-    def _detect_format(self, normalized_set: set[str], header_map: dict[str, str]) -> str:
+    def _unsupported_format_message(self, original_headers: list[str]) -> str:
+        head_preview = ", ".join(original_headers[:14])
+        if len(original_headers) > 14:
+            head_preview += ", …"
+        return (
+            f"Tento soubor neodpovídá podporovanému tvaru pro import ({len(original_headers)} sloupců: {head_preview}). "
+            "Pro pilotní import připravte jeden sjednocený CSV: každý řádek = jeden den u jedné kampaně, se sloupci "
+            "datum (date), kampaň (campaign nebo campaign id), tržby (revenue) a náklady na reklamu (např. spend, cost, náklady). "
+            "Oddělené exporty z e-shopu, Meta a Google je potřeba před nahráním sloučit v tabulkovém editoru — aplikace je zatím neslučuje."
+        )
+
+    def _format_description_for_user(self, fmt: str) -> str:
+        return {
+            "custom_name": "Sjednocený export: datum, název kampaně, tržby a náklady na reklamu.",
+            "custom_id": "Export s interním ID kampaně z aplikace (místo názvu kampaně).",
+            "shopify": "Rozpoznán tvar podobný Shopify — tržby z objednávek; náklady reklamy v souboru typicky chybí a uloží se jako 0.",
+            "shoptet": "Rozpoznán tvar podobný Shoptetu — tržby z exportu; náklady reklamy typicky chybí a uloží se jako 0.",
+        }.get(fmt, fmt)
+
+    def _maybe_raise_suspect_single_column_delimiter(
+        self, headers: list[str], rows: list[dict[str, str]]
+    ) -> None:
+        if len(headers) != 1 or not rows:
+            return
+        key = headers[0]
+        hits = 0
+        for row in rows[:8]:
+            cell = str(row.get(key) or "").strip()
+            if len(cell) > 35 and (";" in cell or cell.count("\t") >= 2):
+                hits += 1
+        if hits >= 2 or (hits >= 1 and len(rows) <= 3):
+            raise ValidationError(
+                "Soubor byl načten jako jeden sloupec — pravděpodobně nesedí oddělovač (čárka vs. středník vs. tabulátor). "
+                "Uložte soubor znovu jako CSV v UTF-8 s konzistentním oddělovačem sloupců.",
+                code=ErrorCode.CSV_DELIMITER_MISMATCH,
+            )
+
+    def _detect_format(
+        self, normalized_set: set[str], header_map: dict[str, str], original_headers: list[str]
+    ) -> str:
         if {"date", "campaign id", "revenue"}.issubset(normalized_set):
             return "custom_id"
         if {"date", "campaign", "revenue"}.issubset(normalized_set):
@@ -420,7 +517,159 @@ class CSVService:
         if shoptet_date and shoptet_revenue:
             return "shoptet"
 
-        raise ValidationError("Nepodporovaný CSV formát.", code=ErrorCode.CSV_UNSUPPORTED_FORMAT)
+        raise ValidationError(
+            self._unsupported_format_message(original_headers),
+            code=ErrorCode.CSV_UNSUPPORTED_FORMAT,
+        )
+
+    def _build_preview_row(
+        self,
+        row: dict[str, str],
+        fmt: str,
+        header_map: dict[str, str],
+        row_index: int,
+    ) -> dict[str, Any]:
+        def date_cell(raw: str, parsed: date | None) -> dict[str, Any]:
+            return {
+                "raw": raw or "—",
+                "parsed": parsed.isoformat() if parsed else None,
+                "ok": parsed is not None,
+                "detail": None
+                if parsed
+                else "Očekáváno datum ve formátu RRRR-MM-DD, DD.MM.RRRR nebo DD/MM/RRRR.",
+            }
+
+        def money_cell(raw: str, parsed: float | None, *, kind: str) -> dict[str, Any]:
+            detail: str | None
+            if parsed is not None:
+                detail = None
+            elif kind == "revenue":
+                detail = "Očekáváno číslo (tržby). Příklad: 1250 nebo 1 250,50 Kč."
+            else:
+                detail = "Očekáváno číslo (náklady). Příklad: 500 nebo 500,00 Kč."
+            return {
+                "raw": raw or "—",
+                "parsed": parsed,
+                "ok": parsed is not None,
+                "detail": detail,
+            }
+
+        out: dict[str, Any] = {"row": row_index, "cells": {}}
+
+        if fmt == "custom_name":
+            date_raw = self._cell(row, header_map.get("date"))
+            camp_raw = self._cell(row, header_map.get("campaign"))
+            revenue_raw = self._cell(row, header_map.get("revenue"))
+            spend_col = self._spend_column_original(header_map)
+            spend_raw = self._cell(row, spend_col)
+            d = self._parse_date(date_raw)
+            rev = self.parse_currency(revenue_raw)
+            spend_parsed, spend_err = self._parse_spend_value(spend_raw, row_index=row_index)
+            if spend_err:
+                spend_cell: dict[str, Any] = {
+                    "raw": spend_raw or "—",
+                    "parsed": None,
+                    "ok": False,
+                    "detail": spend_err,
+                }
+            else:
+                spend_cell = {
+                    "raw": spend_raw or "—",
+                    "parsed": spend_parsed,
+                    "ok": True,
+                    "detail": None,
+                }
+            out["cells"] = {
+                "date": date_cell(date_raw, d),
+                "campaign": {
+                    "raw": camp_raw or "—",
+                    "parsed": None,
+                    "ok": True,
+                    "detail": None
+                    if (camp_raw or "").strip()
+                    else "Prázdný název — při importu se použije výchozí kampaň.",
+                },
+                "revenue": money_cell(revenue_raw, rev, kind="revenue"),
+                "spend": spend_cell,
+            }
+            return out
+
+        if fmt == "custom_id":
+            date_raw = self._cell(row, header_map.get("date"))
+            cid_raw = self._cell(row, header_map.get("campaign id"))
+            revenue_raw = self._cell(row, header_map.get("revenue"))
+            spend_col = self._spend_column_original(header_map)
+            spend_raw = self._cell(row, spend_col)
+            d = self._parse_date(date_raw)
+            rev = self.parse_currency(revenue_raw)
+            spend_parsed, spend_err = self._parse_spend_value(spend_raw, row_index=row_index)
+            if spend_err:
+                spend_cell = {"raw": spend_raw or "—", "parsed": None, "ok": False, "detail": spend_err}
+            else:
+                spend_cell = {"raw": spend_raw or "—", "parsed": spend_parsed, "ok": True, "detail": None}
+            out["cells"] = {
+                "date": date_cell(date_raw, d),
+                "campaign": {
+                    "raw": cid_raw or "—",
+                    "parsed": None,
+                    "ok": bool((cid_raw or "").strip()),
+                    "detail": None
+                    if (cid_raw or "").strip()
+                    else "Prázdné ID — při importu se použije výchozí kampaň.",
+                },
+                "revenue": money_cell(revenue_raw, rev, kind="revenue"),
+                "spend": spend_cell,
+            }
+            return out
+
+        if fmt == "shopify":
+            created_at = self._cell(row, self._find_header(header_map, ["created at"]))
+            total_raw = self._cell(row, self._find_header(header_map, ["total", "subtotal"]))
+            d = self._parse_shopify_date(created_at)
+            rev = self.parse_currency(total_raw)
+            out["cells"] = {
+                "date": date_cell(created_at, d),
+                "campaign": {
+                    "raw": "—",
+                    "parsed": None,
+                    "ok": True,
+                    "detail": "U tohoto typu souboru se řádky při importu řadí do jedné importní kampaně.",
+                },
+                "revenue": money_cell(total_raw, rev, kind="revenue"),
+                "spend": {
+                    "raw": "0",
+                    "parsed": 0.0,
+                    "ok": True,
+                    "detail": "Tento export obvykle neobsahuje náklady na reklamu po kampaních.",
+                },
+            }
+            return out
+
+        if fmt == "shoptet":
+            date_raw = self._cell(row, self._find_header(header_map, ["datum"]))
+            revenue_raw = self._cell(row, self._find_header(header_map, ["trzba", "tržba", "cena celkem"]))
+            d = self._parse_date(date_raw)
+            rev = self.parse_currency(revenue_raw)
+            out["cells"] = {
+                "date": date_cell(date_raw, d),
+                "campaign": {
+                    "raw": "—",
+                    "parsed": None,
+                    "ok": True,
+                    "detail": "U Shoptet exportu se řádky typicky řadí do jedné importní kampaně.",
+                },
+                "revenue": money_cell(revenue_raw, rev, kind="revenue"),
+                "spend": {
+                    "raw": "0",
+                    "parsed": 0.0,
+                    "ok": True,
+                    "detail": "V tomto tvaru exportu nejsou náklady na reklamu ve sloupcích.",
+                },
+            }
+            return out
+
+        out["cells"] = {}
+        return out
 
     def _resolve_campaign_by_name(self, name: str, client_id: int) -> int | None:
         campaign_name = (name or "").strip()
