@@ -54,7 +54,7 @@ engine = create_engine(DATABASE_URL, **_engine_kwargs(DATABASE_URL))
 
 
 def _skip_db_migrations() -> bool:
-    """Temporary: set SKIP_DB_MIGRATIONS=1 to skip Alembic at startup (Render root-cause isolation)."""
+    """When ``SKIP_DB_MIGRATIONS=1``, skip Alembic at startup (local / emergency use)."""
     return os.getenv("SKIP_DB_MIGRATIONS", "").strip() == "1"
 
 
@@ -87,10 +87,6 @@ def run_alembic_upgrade() -> None:
     """Apply Alembic migrations to head (SQLite / PostgreSQL-ready URL)."""
     root = Path(__file__).resolve().parents[1]
     ini = root / "alembic.ini"
-    print(
-        f"[alembic_diag] before alembic.ini path={ini} exists={ini.is_file()}",
-        flush=True,
-    )
     logger.info(
         "alembic_upgrade status=begin project_root=%s alembic_ini=%s ini_exists=%s",
         root,
@@ -98,14 +94,10 @@ def run_alembic_upgrade() -> None:
         ini.is_file(),
     )
     try:
-        print("[alembic_diag] before AlembicConfig(...)", flush=True)
         cfg = AlembicConfig(str(ini))
-        print("[alembic_diag] after AlembicConfig(...)", flush=True)
         cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
-        print("[alembic_diag] before command.upgrade(cfg, 'head')", flush=True)
         logger.info("alembic_upgrade status=running command.upgrade head")
         command.upgrade(cfg, "head")
-        print("[alembic_diag] after command.upgrade(cfg, 'head')", flush=True)
     except Exception:
         logger.exception(
             "alembic_upgrade status=failed project_root=%s alembic_ini=%s",
@@ -129,9 +121,9 @@ def create_db_and_tables() -> None:
     )
     try:
         if _skip_db_migrations():
-            msg = "create_db_and_tables: SKIP_DB_MIGRATIONS=1 — skipping run_alembic_upgrade()"
-            logger.warning(msg)
-            print(msg, flush=True)
+            logger.warning(
+                "create_db_and_tables: SKIP_DB_MIGRATIONS=1 — skipping run_alembic_upgrade()"
+            )
         else:
             run_alembic_upgrade()
         if _is_sqlite_url(DATABASE_URL):

@@ -330,9 +330,7 @@ def create_app() -> FastAPI:
 
         logger.info("startup_step step=create_db_and_tables status=begin")
         try:
-            print("[startup_diag] before create_db_and_tables()", flush=True)
             create_db_and_tables()
-            print("[startup_diag] after create_db_and_tables()", flush=True)
         except Exception:
             logger.exception("startup_step step=create_db_and_tables status=failed")
             raise
