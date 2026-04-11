@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nahrát CSV — Marketingový přehled</title>
+    <title>Nahrát sjednocený CSV soubor — Marketingový přehled</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -29,41 +29,35 @@
 
     <main class="auth-main">
       <div class="card login-card auth-card auth-card--wide">
-        <h1 class="auth-card__title">Nahrát CSV s tržbami</h1>
+        <h1 class="auth-card__title">Nahrát sjednocený CSV soubor</h1>
         <p class="login-subtitle">
-          Nahrajte <strong>jeden</strong> soubor CSV v UTF-8. Oddělovač může být čárka, středník nebo tabulátor — aplikace ho odvodí z hlavičky.
-          Nejprve můžete použít <strong>Náhled</strong> (nic se neuloží), poté <strong>Nahrát a importovat</strong>.
+          Nahrajte jeden CSV soubor v UTF-8. Každý řádek má představovat 1 den u 1 kampaně a obsahovat datum, kampaň, tržby a náklady. Nejdříve doporučujeme použít Náhled — nic se neuloží.
         </p>
 
         <section class="upload-onboarding card" aria-labelledby="uploadOnboardingTitle">
-          <h2 id="uploadOnboardingTitle" class="upload-onboarding__title">Co tento import umí (MVP)</h2>
+          <h2 id="uploadOnboardingTitle" class="upload-onboarding__title">Co tento import očekává</h2>
           <p class="upload-onboarding__text">
-            Aplikace očekává <strong>jeden už sjednocený</strong> soubor: v každém řádku <strong>jeden den</strong> u <strong>jedné kampaně</strong>
-            — hodnoty <strong>tržeb</strong> a <strong>nákladů na reklamu</strong> za ten den. Názvy sloupců umíme sladit s češtinou
-            u nákladů (např. „náklady“, „výdaje“, cost, spend).
+            Tento import je určený pro už sjednocený CSV soubor. V jednom řádku má být vždy datum, kampaň, tržby a náklady na reklamu.
           </p>
-          <p class="upload-onboarding__text">
-            <strong>Povinné sloupce</strong> u typického pilotního souboru (anglické názvy nebo jejich obdoby po normalizaci):
-          </p>
-          <ul class="upload-onboarding__list">
-            <li><code class="upload-onboarding__code-inline">date</code> — datum (např. 2026-04-01 nebo 01.04.2026)</li>
-            <li><code class="upload-onboarding__code-inline">campaign</code> — název kampaně (nebo <code class="upload-onboarding__code-inline">campaign id</code> z této aplikace)</li>
-            <li><code class="upload-onboarding__code-inline">revenue</code> — tržby jako číslo</li>
-            <li>náklady — sloupec typu <code class="upload-onboarding__code-inline">spend</code>, <code class="upload-onboarding__code-inline">cost</code>, „náklady“… (prázdná buňka = 0)</li>
-          </ul>
-          <p class="upload-onboarding__text">
-            <strong>Co import zatím neřeší:</strong> neslučuje samostatné exporty z e-shopu, Meta a Google — ty je potřeba před nahráním spojit v Excelu / Tabulkách do jedné tabulky.
-            Nahrajete-li „surový“ export, který tomuto tvaru neodpovídá, uvidíte srozumitelnou chybu nebo prázdný náhled.
-          </p>
-          <p class="upload-onboarding__label">Ukázka struktury (hlavička + 2 řádky):</p>
+          <p class="upload-onboarding__label">Typická hlavička:</p>
+          <pre class="upload-onboarding__code" role="text">date,campaign,revenue,spend</pre>
+          <p class="upload-onboarding__label">Ukázka:</p>
           <pre class="upload-onboarding__code" role="text">date,campaign,revenue,spend
 2026-01-15,Jarní výprodej,12500.50,420.00
 2026-01-16,Jarní výprodej,9800.00,380.50</pre>
+          <p class="upload-onboarding__text">
+            Co tento import zatím neumí: neslučuje samostatné exporty z e-shopu, Meta a Google automaticky. Pokud máte data odděleně, je potřeba je před nahráním spojit do jednoho CSV souboru.
+          </p>
+          <p class="upload-onboarding__label">Doporučený postup</p>
+          <ol class="upload-onboarding__list">
+            <li>Náhled bez uložení</li>
+            <li>Nahrát a importovat</li>
+          </ol>
           <p class="upload-onboarding__actions">
             <a class="btn btn--secondary btn--small" href="/static/samples/revenue-sample.csv" download>Stáhnout ukázkové CSV</a>
           </p>
           <p class="upload-onboarding__footnote">
-            Podporujeme i omezené tvary Shopify / Shoptet (tržby bez rozpisu nákladů po kampaních — náklady se uloží jako 0). Pro reálný pilot doporučujeme vlastní sjednocený soubor výše.
+            Nemáte jistotu, jak má soubor vypadat? Stáhněte si ukázku a upravte ji podle svých dat.
           </p>
         </section>
 
@@ -71,10 +65,11 @@
 
         <form id="uploadForm" class="upload-form">
           <div class="login-field">
-            <label for="csvFile">Soubor (.csv)</label>
+            <label for="csvFile">Vyberte sjednocený CSV soubor</label>
             <input id="csvFile" name="file" type="file" accept=".csv,text/csv" required />
-            <p id="uploadFileHint" class="upload-file-hint">Vyberte soubor — před importem doporučujeme náhled.</p>
+            <p id="uploadFileHint" class="upload-file-hint">Podporujeme UTF-8 a oddělovač čárka, středník nebo tabulátor.</p>
           </div>
+          <p class="upload-file-hint">Nejdříve doporučujeme zkontrolovat Náhled. Import použijte až ve chvíli, kdy soubor vypadá správně.</p>
           <div class="upload-form__actions">
             <button id="previewBtn" type="button" class="btn btn--secondary" disabled>Náhled (bez uložení)</button>
             <button id="uploadBtn" type="submit" class="btn btn--primary">Nahrát a importovat</button>
