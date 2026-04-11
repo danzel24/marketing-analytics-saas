@@ -45,6 +45,58 @@
       .replace(/"/g, "&quot;");
   }
 
+  function formatCsIsoDate(iso) {
+    if (!iso || typeof iso !== "string") return String(iso || "");
+    const parts = iso.split("-");
+    if (parts.length !== 3) return iso;
+    const y = parts[0];
+    const m = parts[1];
+    const d = parts[2];
+    return `${parseInt(d, 10)}.${parseInt(m, 10)}.${y}`;
+  }
+
+  /** Shown after successful import (green alert). */
+  function buildImportDateFollowUpHtml(data) {
+    const dmin = data.import_metric_date_min;
+    const dmax = data.import_metric_date_max;
+    if (!dmin || !dmax) return "";
+    const defDays = data.dashboard_default_window_days ?? 30;
+    let h =
+      `<p class="upload-success__detail">Rozpětí dat v nahraném souboru: <strong>${escapeHtml(formatCsIsoDate(dmin))} – ${escapeHtml(formatCsIsoDate(dmax))}</strong>.</p>`;
+    if (data.import_outside_default_dashboard_window) {
+      const sug = Math.min(
+        366,
+        Math.max(1, parseInt(String(data.suggested_dashboard_days || defDays), 10) || defDays),
+      );
+      const href = `/dashboard?days=${sug}`;
+      h +=
+        `<p class="upload-success__detail upload-success__detail--warn">Výchozí přehled ukazuje posledních <strong>${defDays} dní</strong> — tato data tam nemusí být vidět a přehled může vypadat prázdně. ` +
+        `Otevřeme přehled s oknem <strong>${sug} dní</strong>. ` +
+        `<a href="${escapeHtml(href)}">Otevřít hned</a></p>`;
+    }
+    return h;
+  }
+
+  /** Shown when import saved nothing but API returned parsed date range. */
+  function buildImportDateNoteWhenFailed(data) {
+    const dmin = data.import_metric_date_min;
+    const dmax = data.import_metric_date_max;
+    if (!dmin || !dmax) return "";
+    const defDays = data.dashboard_default_window_days ?? 30;
+    let h =
+      `<p class="upload-warning__detail">Ve zpracovaných řádcích jsou datumy <strong>${escapeHtml(formatCsIsoDate(dmin))} – ${escapeHtml(formatCsIsoDate(dmax))}</strong>, ale žádný řádek nebyl uložen.</p>`;
+    if (data.import_outside_default_dashboard_window) {
+      const sug = Math.min(
+        366,
+        Math.max(1, parseInt(String(data.suggested_dashboard_days || defDays), 10) || defDays),
+      );
+      const href = `/dashboard?days=${sug}`;
+      h +=
+        `<p class="upload-warning__detail">Až import poběží správně, v přehledu zvolte delší období (např. <a href="${escapeHtml(href)}">${sug} dní</a>), aby šla data vidět.</p>`;
+    }
+    return h;
+  }
+
   function setUploadAlertsVisible(successVisible, errorVisible) {
     if (ok) ok.classList.toggle("hidden", !successVisible);
     if (err) err.classList.toggle("hidden", !errorVisible);
@@ -402,11 +454,12 @@
             w +=
               `<p style="margin:10px 0 0;font-size:12px;line-height:1.45">Přeskočeno celkem: ${sk}. ` +
               "Zkuste náhled bez uložení nebo upravte CSV podle nápovědy.</p>";
-            warn.innerHTML = w;
+            warn.innerHTML = w + buildImportDateNoteWhenFailed(data);
           } else {
             warn.innerHTML =
               "<strong>Nebyla uložena žádná data.</strong> " +
-              `Přeskočeno řádků: ${sk}. Zkuste Náhled, upravte CSV podle nápovědy a nahrajte znovu.`;
+              `Přeskočeno řádků: ${sk}. Zkuste Náhled, upravte CSV podle nápovědy a nahrajte znovu.` +
+              buildImportDateNoteWhenFailed(data);
           }
           scrollAlertIntoView(warn);
         }
@@ -414,6 +467,7 @@
       }
 
       const partial = rowErrors.length > 0;
+      const dateExtras = buildImportDateFollowUpHtml(data);
 
       if (ok) {
         ok.classList.remove("hidden");
@@ -422,9 +476,10 @@
           ok.innerHTML =
             "<strong>Import částečně proběhl.</strong> " +
             summary +
-            " Níže najdete varování u řádků, které se nepodařilo zpracovat.";
+            " Níže najdete varování u řádků, které se nepodařilo zpracovat." +
+            dateExtras;
         } else {
-          ok.innerHTML = "<strong>Import proběhl.</strong> " + summary;
+          ok.innerHTML = "<strong>Import proběhl.</strong> " + summary + dateExtras;
         }
       }
 
@@ -452,17 +507,26 @@
         scrollAlertIntoView(warn);
       }
 
+      let dashboardHref = "/dashboard";
+      if (data.import_outside_default_dashboard_window && data.suggested_dashboard_days) {
+        const sug = Math.min(
+          366,
+          Math.max(1, parseInt(String(data.suggested_dashboard_days), 10) || 30),
+        );
+        dashboardHref = `/dashboard?days=${sug}`;
+      }
+
       const delayMs = partial ? 4500 : 1400;
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        window.location.href = dashboardHref;
       }, delayMs);
     } catch (ex) {
-        if (err) {
-          err.classList.remove("hidden");
-          err.textContent = String(ex.message || ex || "Nahrání selhalo.");
-          scrollAlertIntoView(err);
-        }
-      } finally {
+      if (err) {
+        err.classList.remove("hidden");
+        err.textContent = String(ex.message || ex || "Nahrání selhalo.");
+        scrollAlertIntoView(err);
+      }
+    } finally {
         setLoading(false);
         updateFileHint();
       }

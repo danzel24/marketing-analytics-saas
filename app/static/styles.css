@@ -1744,6 +1744,36 @@ body {
   color: #a7f3d0;
 }
 
+.alert--success .upload-success__detail {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(167, 243, 208, 0.92);
+}
+
+.alert--success .upload-success__detail a {
+  color: #fff;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.alert--success .upload-success__detail--warn {
+  color: #fde68a;
+}
+
+.alert--warning .upload-warning__detail {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #fcd34d;
+}
+
+.alert--warning .upload-warning__detail a {
+  color: #fff;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 .alert--error {
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.35);

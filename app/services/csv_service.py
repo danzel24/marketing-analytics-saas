@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 from io import StringIO
 import logging
@@ -23,6 +23,8 @@ CLEAR_IMPORTED_CONFIRMATION = "DELETE_IMPORTED_DATA"
 
 logger = logging.getLogger(__name__)
 MAX_CSV_UPLOAD_BYTES = 15 * 1024 * 1024
+# Must match default dashboard window (``dashboard.js`` selectedDays / ``/api/v1/dashboard/full?days=``).
+DASHBOARD_DEFAULT_WINDOW_DAYS = 30
 
 
 class CSVService:
@@ -226,13 +228,50 @@ class CSVService:
             for r in normalized_rows
             if isinstance(r.get("campaign_id"), int)
         }
-        return {
+        out: dict[str, int | str | list[dict[str, object]] | bool | None] = {
             "imported": imported,
             "updated": updated,
             "skipped": skipped,
             "campaigns_in_import": len(distinct_campaign_ids),
             "errors": errors,
             "detected_format": response_format,
+        }
+        out.update(self._import_dashboard_window_hints(normalized_rows))
+        return out
+
+    @staticmethod
+    def _import_dashboard_window_hints(
+        normalized_rows: list[dict[str, object]],
+    ) -> dict[str, str | bool | int | None]:
+        """
+        Date range of successfully parsed rows and whether it lies entirely outside the default
+        dashboard window. Helps users who upload older data and see an empty 30-day dashboard.
+        """
+        metric_dates = [r["date"] for r in normalized_rows if isinstance(r.get("date"), date)]
+        if not metric_dates:
+            return {
+                "import_metric_date_min": None,
+                "import_metric_date_max": None,
+                "import_outside_default_dashboard_window": None,
+                "dashboard_default_window_days": DASHBOARD_DEFAULT_WINDOW_DAYS,
+                "suggested_dashboard_days": None,
+            }
+        d_min = min(metric_dates)
+        d_max = max(metric_dates)
+        today = date.today()
+        window_end = today
+        window_start = today - timedelta(days=DASHBOARD_DEFAULT_WINDOW_DAYS - 1)
+        # No overlap with [window_start, window_end] inclusive.
+        outside = d_max < window_start or d_min > window_end
+        suggested: int | None = None
+        if outside:
+            suggested = min(366, max(DASHBOARD_DEFAULT_WINDOW_DAYS, (today - d_min).days + 1))
+        return {
+            "import_metric_date_min": d_min.isoformat(),
+            "import_metric_date_max": d_max.isoformat(),
+            "import_outside_default_dashboard_window": outside,
+            "dashboard_default_window_days": DASHBOARD_DEFAULT_WINDOW_DAYS,
+            "suggested_dashboard_days": suggested,
         }
 
     def _upsert_normalized_rows(

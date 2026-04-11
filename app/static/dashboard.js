@@ -1354,8 +1354,31 @@ els.logoutBtn.addEventListener("click", (e) => {
   handleLogout();
 });
 
+function applyDaysFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("days");
+    if (raw == null || raw === "") return;
+    const d = parseInt(raw, 10);
+    if (!Number.isFinite(d) || d < 1) return;
+    selectedDays = Math.min(d, 366);
+    const btns = document.querySelectorAll(".filter-btn");
+    let matched = false;
+    btns.forEach((btn) => {
+      const btnDays = parseInt(btn.dataset.days, 10);
+      const on = btnDays === selectedDays;
+      btn.classList.toggle("active", on);
+      if (on) matched = true;
+    });
+    if (!matched) btns.forEach((b) => b.classList.remove("active"));
+  } catch (_e) {
+    /* ignore */
+  }
+}
+
 window.addEventListener("load", async () => {
   initFilterBar();
+  applyDaysFromUrl();
   await window.bootstrapSession();
   if (!window.getToken()) {
     window.location.href = "/login";
