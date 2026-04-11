@@ -23,6 +23,20 @@
     spend: "Náklady",
   };
 
+  /** Short tips when API code is known but body is missing or generic (upload/preview only). */
+  const CSV_ERR_HINTS = {
+    CSV_NO_DATA: "Soubor je prázdný nebo po vynechání řádků neobsahuje data. Přidejte hlavičku a datové řádky.",
+    CSV_HEADER_MISSING:
+      "Chybí řádek s názvy sloupců. Na prvním neprázdném řádku musí být např. date, campaign, revenue, spend.",
+    CSV_UNSUPPORTED_FORMAT:
+      "Hlavička neodpovídá podporovanému tvaru. Porovnejte ji s ukázkou na stránce nebo stáhněte ukázkové CSV.",
+    CSV_DELIMITER_MISMATCH:
+      "Soubor se načetl jako jeden sloupec — zkuste uložit CSV znovu s oddělovačem čárka, středník nebo tabulátor.",
+    CSV_ENCODING: "Soubor musí být UTF-8. V Excelu zvolte „CSV UTF-8“; v Tabulkách Soubor → Stáhnout → CSV.",
+    CSV_TOO_LARGE: "Soubor překračuje limit 15 MB — zmenšete export nebo ho rozdělte.",
+    CSV_NOT_LOADED: "Soubor se nepodařilo odeslat. Vyberte ho znovu a zkuste ještě jednou.",
+  };
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -34,6 +48,38 @@
   function setUploadAlertsVisible(successVisible, errorVisible) {
     if (ok) ok.classList.toggle("hidden", !successVisible);
     if (err) err.classList.toggle("hidden", !errorVisible);
+  }
+
+  function formatUploadFailure(res, ct, data) {
+    if (!ct.includes("application/json")) {
+      if (res.status === 413) {
+        return "Soubor je příliš velký pro nahrání. Zkuste menší soubor (limit 15 MB).";
+      }
+      return (
+        `Server nevrátil popis chyby (HTTP ${res.status}). ` +
+        "Zkuste znovu, ověřte UTF-8 CSV, nebo použijte Náhled pro rychlou kontrolu."
+      );
+    }
+    const code = data && data.error && data.error.code;
+    const serverMsg = data && data.error && data.error.message ? String(data.error.message).trim() : "";
+    let msg = window.apiErrorMessage(data);
+    const generic = msg === "Požadavek selhal." || !serverMsg;
+    if (generic && code && CSV_ERR_HINTS[code]) {
+      return CSV_ERR_HINTS[code];
+    }
+    if (generic) {
+      return "Import se nezdařil. Zkuste Náhled nebo zkontrolujte formát CSV podle nápovědy na stránce.";
+    }
+    return msg;
+  }
+
+  function scrollAlertIntoView(el) {
+    if (!el || el.classList.contains("hidden")) return;
+    try {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (_e) {
+      el.scrollIntoView();
+    }
   }
 
   function setLoading(on) {
@@ -69,7 +115,8 @@
     const f = file && file.files && file.files[0];
     if (!uploadFileHint) return;
     if (!f) {
-      uploadFileHint.textContent = "Vyberte soubor — před importem doporučujeme náhled.";
+      uploadFileHint.textContent =
+        "Podporujeme UTF-8 a oddělovač čárka, středník nebo tabulátor.";
       return;
     }
     const kb = f.size / 1024;
@@ -259,7 +306,8 @@
         if (!res.ok) {
           if (err) {
             err.classList.remove("hidden");
-            err.textContent = window.apiErrorMessage(data);
+            err.textContent = formatUploadFailure(res, ct, data);
+            scrollAlertIntoView(err);
           }
           return;
         }
@@ -268,6 +316,7 @@
         if (err) {
           err.classList.remove("hidden");
           err.textContent = String(ex.message || ex || "Náhled selhal.");
+          scrollAlertIntoView(err);
         }
       } finally {
         setPreviewLoading(false);
@@ -314,7 +363,8 @@
       if (!res.ok) {
         if (err) {
           err.classList.remove("hidden");
-          err.textContent = window.apiErrorMessage(data);
+          err.textContent = formatUploadFailure(res, ct, data);
+          scrollAlertIntoView(err);
         }
         return;
       }
@@ -355,27 +405,36 @@
             warn.innerHTML = w;
           } else {
             warn.innerHTML =
-              "<strong>Nebylo uloženo žádné datum.</strong> " +
-              `Přeskočeno: ${sk}. Zkuste náhled výše, upravte CSV a nahrajte znovu.`;
+              "<strong>Nebyla uložena žádná data.</strong> " +
+              `Přeskočeno řádků: ${sk}. Zkuste Náhled, upravte CSV podle nápovědy a nahrajte znovu.`;
           }
+          scrollAlertIntoView(warn);
         }
         return;
       }
 
+      const partial = rowErrors.length > 0;
+
       if (ok) {
         ok.classList.remove("hidden");
-        ok.innerHTML =
-          "<strong>Import proběhl.</strong> " +
-          `Nové řádky metrik: ${imp}. Aktualizace: ${upd}. Přeskočeno: ${sk}. ` +
-          `Kampaní v souboru (různé názvy): ${campaigns}.`;
+        const summary = `Nově uloženo: ${imp} řádků. Aktualizováno: ${upd}. Přeskočeno: ${sk}. Kampaní v souboru (různé názvy): ${campaigns}.`;
+        if (partial) {
+          ok.innerHTML =
+            "<strong>Import částečně proběhl.</strong> " +
+            summary +
+            " Níže najdete varování u řádků, které se nepodařilo zpracovat.";
+        } else {
+          ok.innerHTML = "<strong>Import proběhl.</strong> " + summary;
+        }
       }
 
-      if (rowErrors.length > 0 && warn) {
+      if (partial && warn) {
         warn.classList.remove("hidden");
         let w =
-          "<strong>Některé řádky nebyly importovány.</strong> " +
-          `Počet problematických řádků v odpovědi: ${rowErrors.length}. ` +
-          "Ukázka prvních hlášek:";
+          "<strong>Část řádků se nepodařila naimportovat.</strong> " +
+          `Uloženo v tomto běhu: ${imp} nových, ${upd} aktualizovaných. ` +
+          `Přeskočeno celkem: ${sk}. Řádků s hláškou v odpovědi: ${rowErrors.length}. ` +
+          "Ukázka prvních problémů:";
         w += "<ul style=\"margin:8px 0 0 1.1rem;padding:0;font-size:12px;line-height:1.45\">";
         for (const it of errSample) {
           const r = it.row != null ? it.row : "?";
@@ -386,22 +445,27 @@
           w += `<li>… a další (${rowErrors.length - errSample.length} řádků)</li>`;
         }
         w += "</ul>";
+        w +=
+          '<p style="margin:10px 0 0;font-size:12px;line-height:1.45">' +
+          "Zkontrolujte datum a čísla ve sloupcích (tržby, náklady). Příště můžete nejdřív použít Náhled.</p>";
         warn.innerHTML = w;
+        scrollAlertIntoView(warn);
       }
 
-      const delayMs = rowErrors.length > 0 ? 3200 : 1400;
+      const delayMs = partial ? 4500 : 1400;
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, delayMs);
     } catch (ex) {
-      if (err) {
-        err.classList.remove("hidden");
-        err.textContent = String(ex.message || ex || "Nahrání selhalo.");
+        if (err) {
+          err.classList.remove("hidden");
+          err.textContent = String(ex.message || ex || "Nahrání selhalo.");
+          scrollAlertIntoView(err);
+        }
+      } finally {
+        setLoading(false);
+        updateFileHint();
       }
-    } finally {
-      setLoading(false);
-      updateFileHint();
-    }
   });
 
   init();
