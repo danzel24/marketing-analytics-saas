@@ -1,5 +1,7 @@
 """Core financial and status logic for marketing metrics."""
 
+from datetime import date, datetime
+
 from app.services.marketing_service import (
     MIN_SPEND_CZK_FOR_HARD_STOP,
     MarketingService,
@@ -117,6 +119,15 @@ def test_recommendation_scale_requires_min_spend_unless_big_profit() -> None:
     assert float(m["roas"]) >= be * 1.25
     rec = MarketingService.generate_campaign_recommendation(m, "Small", window_days=30)
     assert rec["type"] != "scale"
+
+
+def test_normalize_metric_day_accepts_date_datetime_and_iso_string() -> None:
+    assert MarketingService._normalize_metric_day(date(2024, 6, 1)) == date(2024, 6, 1)
+    assert MarketingService._normalize_metric_day(datetime(2024, 6, 1, 14, 30)) == date(2024, 6, 1)
+    assert MarketingService._normalize_metric_day("2024-06-15") == date(2024, 6, 15)
+    assert MarketingService._normalize_metric_day("2024-06-15T12:00:00Z") == date(2024, 6, 15)
+    assert MarketingService._normalize_metric_day(None) is None
+    assert MarketingService._normalize_metric_day("") is None
 
 
 def test_csv_parse_currency_strips_kc() -> None:

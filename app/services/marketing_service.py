@@ -103,6 +103,25 @@ class MarketingService:
             return None
 
     @classmethod
+    def _normalize_metric_day(cls, value: object) -> date | None:
+        """
+        Coerce ORM/DB ``metric_date`` to ``date`` for day-level aggregations and trends.
+
+        KPI sums iterate all rows regardless of type; trend helpers used ``isinstance(..., date)``
+        only. If a driver returns ISO strings, ``present_days`` stayed empty and charts were all-null
+        while totals and the campaign table still looked correct.
+        """
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        if isinstance(value, str):
+            return cls._parse_trend_date(value)
+        return None
+
+    @classmethod
     def _calendar_window_series(
         cls,
         sparse: list[dict[str, object]],
@@ -146,8 +165,8 @@ class MarketingService:
     def _metric_dates_in_window(cls, metrics: list[object]) -> set[date]:
         dates: set[date] = set()
         for m in metrics:
-            md = getattr(m, "metric_date", None)
-            if isinstance(md, date):
+            md = cls._normalize_metric_day(getattr(m, "metric_date", None))
+            if md is not None:
                 dates.add(md)
         return dates
 
@@ -402,7 +421,10 @@ class MarketingService:
             metrics, _ = self._metrics_for_client_window(client_id=cid, days=days)
         day_totals: dict[tuple[int, date], list[float]] = defaultdict(lambda: [0.0, 0.0])
         for m in metrics:
-            key = (int(m.campaign_id), m.metric_date)
+            md = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if md is None:
+                continue
+            key = (int(m.campaign_id), md)
             day_totals[key][0] += float(m.revenue)
             day_totals[key][1] += float(m.spend)
 
@@ -1034,8 +1056,8 @@ class MarketingService:
         rev: dict[date, float] = defaultdict(float)
         spend: dict[date, float] = defaultdict(float)
         for m in metrics:
-            md = getattr(m, "metric_date", None)
-            if not isinstance(md, date) or md < window_start or md > window_end:
+            md = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if md is None or md < window_start or md > window_end:
                 continue
             rev[md] += MarketingService._non_negative_money(float(getattr(m, "revenue", 0) or 0))
             spend[md] += MarketingService._non_negative_money(float(getattr(m, "spend", 0) or 0))
@@ -1095,7 +1117,9 @@ class MarketingService:
         if excl is None:
             return raw, ctx
 
-        filtered = [m for m in raw if getattr(m, "metric_date", None) != excl]
+        filtered = [
+            m for m in raw if MarketingService._normalize_metric_day(getattr(m, "metric_date", None)) != excl
+        ]
         ctx["has_partial_data"] = True
         ctx["excluded_date"] = excl
         return filtered, ctx
@@ -1207,7 +1231,9 @@ class MarketingService:
         )
         if excluded_day is not None:
             paid_metrics = [
-                m for m in paid_metrics if getattr(m, "metric_date", None) != excluded_day
+                m
+                for m in paid_metrics
+                if MarketingService._normalize_metric_day(getattr(m, "metric_date", None)) != excluded_day
             ]
         paid_revenue = float(sum(MarketingService._non_negative_money(float(m.revenue)) for m in paid_metrics))
         paid_spend = float(sum(MarketingService._non_negative_money(float(m.spend)) for m in paid_metrics))
@@ -1218,8 +1244,8 @@ class MarketingService:
         paid_rev_by_day: dict[date, float] = defaultdict(float)
         paid_spend_by_day: dict[date, float] = defaultdict(float)
         for m in paid_metrics:
-            d = getattr(m, "metric_date", None)
-            if not isinstance(d, date):
+            d = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if d is None:
                 continue
             paid_rev_by_day[d] += MarketingService._non_negative_money(float(m.revenue))
             paid_spend_by_day[d] += MarketingService._non_negative_money(float(m.spend))
@@ -1314,7 +1340,11 @@ class MarketingService:
 
         wd_for_cov = max(int(days), 1) if days is not None else 0
         distinct_data_days = len(
-            {getattr(m, "metric_date") for m in metrics if getattr(m, "metric_date", None) is not None}
+            {
+                md
+                for m in metrics
+                if (md := MarketingService._normalize_metric_day(getattr(m, "metric_date", None))) is not None
+            }
         )
         if days is not None and wd_for_cov > 0:
             coverage = distinct_data_days / float(wd_for_cov)
@@ -1364,8 +1394,8 @@ class MarketingService:
         present = self._metric_dates_in_window(metrics)
         by_day: dict[date, float] = defaultdict(float)
         for m in metrics:
-            d = getattr(m, "metric_date", None)
-            if not isinstance(d, date):
+            d = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if d is None:
                 continue
             by_day[d] += MarketingService._non_negative_money(float(getattr(m, "revenue", 0) or 0))
         sparse = [{"date": d, "value": v} for d, v in by_day.items()]
@@ -1380,8 +1410,8 @@ class MarketingService:
         present = self._metric_dates_in_window(metrics)
         by_day: dict[date, float] = defaultdict(float)
         for m in metrics:
-            d = getattr(m, "metric_date", None)
-            if not isinstance(d, date):
+            d = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if d is None:
                 continue
             by_day[d] += MarketingService._non_negative_money(float(getattr(m, "spend", 0) or 0))
         sparse = [{"date": d, "value": v} for d, v in by_day.items()]
@@ -1403,8 +1433,8 @@ class MarketingService:
         rev_by_day: dict[date, float] = defaultdict(float)
         spend_by_day: dict[date, float] = defaultdict(float)
         for m in metrics:
-            d = getattr(m, "metric_date", None)
-            if not isinstance(d, date):
+            d = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if d is None:
                 continue
             rev_by_day[d] += MarketingService._non_negative_money(float(getattr(m, "revenue", 0) or 0))
             spend_by_day[d] += MarketingService._non_negative_money(float(getattr(m, "spend", 0) or 0))
@@ -1433,8 +1463,8 @@ class MarketingService:
         rev_by_day: dict[date, float] = defaultdict(float)
         spend_by_day: dict[date, float] = defaultdict(float)
         for m in metrics:
-            d = getattr(m, "metric_date", None)
-            if not isinstance(d, date):
+            d = MarketingService._normalize_metric_day(getattr(m, "metric_date", None))
+            if d is None:
                 continue
             rev_by_day[d] += MarketingService._non_negative_money(float(getattr(m, "revenue", 0) or 0))
             spend_by_day[d] += MarketingService._non_negative_money(float(getattr(m, "spend", 0) or 0))
@@ -1619,7 +1649,11 @@ class MarketingService:
         self._db_requirements()
         cid = require_positive_client_id(client_id)
         metrics, _ = self._metrics_for_client_window(client_id=cid, days=days)
-        dates = [getattr(m, "metric_date") for m in metrics if getattr(m, "metric_date", None) is not None]
+        dates = [
+            md
+            for m in metrics
+            if (md := MarketingService._normalize_metric_day(getattr(m, "metric_date", None))) is not None
+        ]
         last_metric = max(dates) if dates else None
         wd = max(int(days), 1)
         return {

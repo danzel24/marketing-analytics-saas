@@ -1212,6 +1212,16 @@ function renderCharts(data) {
     },
     options: makeChartOptions((ctx) => `Čistý zisk: ${money(ctx.parsed.y)}`),
   });
+
+  // After toggling ``display:none`` on chart panels (empty state), Chart.js can measure 0×0 once.
+  // Double rAF waits for layout; ``resize()`` picks up the real panel dimensions.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      charts.revenue?.resize?.();
+      charts.spend?.resize?.();
+      charts.profit?.resize?.();
+    });
+  });
 }
 
 /* ── Filter bar ─────────────────────────────────────────── */
