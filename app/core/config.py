@@ -77,6 +77,7 @@ class StartupSettings:
     cookie_samesite: Literal["lax", "strict", "none"]
     enable_background_sync: bool
     enable_google_ads_user_api: bool
+    enable_legacy_v1_csv_campaigns: bool
     data_csv_path: Path
     tenants_data_dir: Path
 
@@ -116,6 +117,7 @@ def get_startup_settings() -> StartupSettings:
 
     enable_background_sync = _parse_bool_env("ENABLE_BACKGROUND_SYNC", False)
     enable_google_ads_user_api = _parse_bool_env("ENABLE_GOOGLE_ADS_USER_API", False)
+    enable_legacy_v1_csv_campaigns = _parse_bool_env("ENABLE_LEGACY_V1_CSV_CAMPAIGNS", False)
 
     st = get_settings()
     data_csv = st.data_csv_path
@@ -128,6 +130,7 @@ def get_startup_settings() -> StartupSettings:
         cookie_samesite=samesite,
         enable_background_sync=enable_background_sync,
         enable_google_ads_user_api=enable_google_ads_user_api,
+        enable_legacy_v1_csv_campaigns=enable_legacy_v1_csv_campaigns,
         data_csv_path=data_csv,
         tenants_data_dir=tenants,
     )

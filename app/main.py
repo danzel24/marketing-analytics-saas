@@ -2,6 +2,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
@@ -340,13 +341,14 @@ def create_app() -> FastAPI:
         s = get_startup_settings()
         logger.info(
             "startup app_env=%s production=%s cookie_secure=%s cookie_samesite=%s "
-            "background_sync=%s google_ads_user_api=%s sqlalchemy_dialect=%s",
+            "background_sync=%s google_ads_user_api=%s legacy_v1_csv=%s sqlalchemy_dialect=%s",
             s.app_env,
             s.is_production,
             s.cookie_secure,
             s.cookie_samesite,
             s.enable_background_sync,
             s.enable_google_ads_user_api,
+            s.enable_legacy_v1_csv_campaigns,
             engine.dialect.name,
         )
         if s.enable_background_sync:
@@ -406,8 +408,8 @@ def create_app() -> FastAPI:
     async def _request_correlation_middleware(request: Request, call_next):
         return await correlation_id_middleware(request, call_next)
 
-    # Legacy CSV campaigns (v1)
-    app.include_router(campaigns_router, prefix="/v1")
+    if get_startup_settings().enable_legacy_v1_csv_campaigns:
+        app.include_router(campaigns_router, prefix="/v1")
 
     # Dashboard + Auth (api/v1)
     app.include_router(dashboard_router)
@@ -470,10 +472,14 @@ def create_app() -> FastAPI:
     app.openapi = custom_openapi  # type: ignore[method-assign]
 
     @app.get("/api")
-    def api_root() -> dict[str, str]:
+    def api_root() -> dict[str, Any]:
+        s = get_startup_settings()
+        versions: list[str] = ["api/v1"]
+        if s.enable_legacy_v1_csv_campaigns:
+            versions.insert(0, "v1")
         return {
             "message": "Marketing Analytics API",
-            "versions": ["v1", "api/v1"],
+            "versions": versions,
             "web": "/",
             "dashboard": "/dashboard",
         }
