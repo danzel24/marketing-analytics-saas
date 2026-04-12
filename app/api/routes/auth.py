@@ -15,8 +15,10 @@ from app.core.security import (
 )
 from app.database import get_session
 from app.models.db_models import User
+from app.repositories.client_repository import ClientRepository
 from app.schemas.auth import LoginIn, RegisterIn, TokenOut
 from app.services.auth_service import AuthService
+from app.services.marketing_service import MarketingService
 
 router = APIRouter(tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -93,9 +95,17 @@ def logout(
 
 
 @router.get("/api/v1/auth/me")
-def get_me(current_user: User = Depends(get_current_user)) -> dict[str, object]:
+def get_me(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    repo = ClientRepository(session)
+    client = repo.get_by_id_for_client(current_user.client_id)
+    raw_margin = getattr(client, "margin", None) if client else None
+    m = MarketingService._validated_margin(raw_margin)
     return {
         "id": current_user.id,
         "email": current_user.email,
         "is_admin": str(getattr(current_user, "role", "user")) == "admin",
+        "margin_percent": int(round(m * 100)),
     }

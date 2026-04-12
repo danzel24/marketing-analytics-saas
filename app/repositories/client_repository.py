@@ -52,3 +52,15 @@ class ClientRepository:
         self.session.delete(obj)
         self.session.commit()
         return True
+
+    def update_margin_for_client(self, client_id: int, margin: float) -> Client | None:
+        """Persist gross margin as a decimal in (0, 1), e.g. 0.4 for 40 %."""
+        cid = require_positive_client_id(client_id)
+        obj = self.session.get(Client, cid)
+        if obj is None:
+            return None
+        obj.margin = float(margin)
+        self.session.add(obj)
+        self.session.commit()
+        self.session.refresh(obj)
+        return obj

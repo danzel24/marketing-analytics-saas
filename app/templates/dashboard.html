@@ -40,6 +40,24 @@
         <button type="button" class="filter-btn active" data-days="30">30 dní</button>
         <button type="button" class="filter-btn" data-days="90">90 dní</button>
       </div>
+      <div class="filter-bar margin-bar" aria-label="Marže pro výpočet ziskovosti">
+        <span class="filter-bar__label">Marže (hrubá):</span>
+        <input
+          id="marginPercentInput"
+          class="margin-bar__input"
+          type="number"
+          min="1"
+          max="99"
+          step="1"
+          value="40"
+          inputmode="numeric"
+          aria-describedby="marginBarHint"
+        />
+        <span class="margin-bar__pct" aria-hidden="true">%</span>
+        <button type="button" id="marginApplyBtn" class="btn btn--secondary margin-bar__btn">Použít</button>
+        <span id="marginBarHint" class="margin-bar__hint">Zisk a bod zvratu počítáme z této marže (uloženo k účtu).</span>
+        <span id="marginSaveStatus" class="margin-bar__status" aria-live="polite"></span>
+      </div>
       <p id="dashboardLoadHint" class="dashboard-load-hint hidden" aria-live="polite">Načítám dashboard…</p>
 
       <div id="dashboardEmptyBanner" class="dashboard-empty-banner card hidden" role="status">

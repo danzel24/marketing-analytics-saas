@@ -14,6 +14,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.upload import router as upload_router
 from app.api.routes.admin import router as admin_router
 from app.api.routes.integrations import router as integrations_router
+from app.api.routes.client_settings import router as client_settings_router
 from app.core.domain_errors import AppError, InternalMisuseError
 from app.core.error_response import build_error_payload
 from app.core.request_id import (
@@ -413,6 +414,7 @@ def create_app() -> FastAPI:
     app.include_router(upload_router)
     app.include_router(admin_router)
     app.include_router(integrations_router)
+    app.include_router(client_settings_router)
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 

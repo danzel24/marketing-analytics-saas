@@ -37,6 +37,9 @@ const els = {
   tbody: document.getElementById("campaignTbody"),
   revenueCanvas: document.getElementById("revenueChart"),
   spendCanvas: document.getElementById("spendChart"),
+  marginPercentInput: document.getElementById("marginPercentInput"),
+  marginApplyBtn: document.getElementById("marginApplyBtn"),
+  marginSaveStatus: document.getElementById("marginSaveStatus"),
 };
 
 let charts = { revenue: null, spend: null, profit: null };
@@ -215,6 +218,13 @@ function fetchJson(url) {
 async function loadCurrentUser() {
   try {
     const me = await fetchJson("/api/v1/auth/me");
+    if (els.marginPercentInput && me && me.margin_percent != null) {
+      const p = Number(me.margin_percent);
+      if (Number.isFinite(p) && p >= 1 && p <= 99) {
+        els.marginPercentInput.value = String(Math.round(p));
+      }
+    }
+    if (els.marginSaveStatus) els.marginSaveStatus.textContent = "";
     if (els.adminBtn && me?.is_admin === true) {
       els.adminBtn.style.display = "inline-block";
       els.adminBtn.onclick = () => {
@@ -225,10 +235,46 @@ async function loadCurrentUser() {
       els.adminBtn.onclick = null;
     }
   } catch {
+    if (els.marginSaveStatus) els.marginSaveStatus.textContent = "";
     if (els.adminBtn) {
       els.adminBtn.style.display = "none";
       els.adminBtn.onclick = null;
     }
+  }
+}
+
+function initMarginBar() {
+  if (!els.marginApplyBtn || !els.marginPercentInput) return;
+  els.marginApplyBtn.addEventListener("click", () => {
+    applyMarginFromInput();
+  });
+  els.marginPercentInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyMarginFromInput();
+    }
+  });
+}
+
+async function applyMarginFromInput() {
+  const inp = els.marginPercentInput;
+  const st = els.marginSaveStatus;
+  if (!inp || !st) return;
+  const raw = parseInt(String(inp.value).trim(), 10);
+  if (!Number.isFinite(raw) || raw < 1 || raw > 99) {
+    st.textContent = "Zadejte celé číslo 1–99 (marže v %).";
+    return;
+  }
+  st.textContent = "Ukládám…";
+  try {
+    await window.authFetchJson("/api/v1/client/margin", {
+      method: "PATCH",
+      body: JSON.stringify({ margin_percent: raw }),
+    });
+    st.textContent = "";
+    await loadDashboard();
+  } catch (e) {
+    st.textContent = String(e.message || e || "Nepodařilo se uložit marži.");
   }
 }
 
@@ -1378,6 +1424,7 @@ function applyDaysFromUrl() {
 
 window.addEventListener("load", async () => {
   initFilterBar();
+  initMarginBar();
   applyDaysFromUrl();
   await window.bootstrapSession();
   if (!window.getToken()) {
@@ -1386,6 +1433,6 @@ window.addEventListener("load", async () => {
   }
   els.dashboardSection.classList.remove("hidden");
   els.logoutBtn.classList.remove("hidden");
-  loadCurrentUser();
+  await loadCurrentUser();
   loadDashboard();
 });
