@@ -1577,7 +1577,8 @@ class MarketingService:
             "window_description": f"Data za posledních {wd} dní",
             "last_metric_date": last_metric.isoformat() if last_metric else None,
             "computed_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-            "sources": ["Meta Ads", "Google Ads", "CSV / manuální import"],
+            # Omit Google Ads until the integration is production-ready (trust strip is user-facing).
+            "sources": ["Meta Ads", "CSV / manuální import"],
         }
 
     def dashboard_full_db(

@@ -340,12 +340,13 @@ def create_app() -> FastAPI:
         s = get_startup_settings()
         logger.info(
             "startup app_env=%s production=%s cookie_secure=%s cookie_samesite=%s "
-            "background_sync=%s sqlalchemy_dialect=%s",
+            "background_sync=%s google_ads_user_api=%s sqlalchemy_dialect=%s",
             s.app_env,
             s.is_production,
             s.cookie_secure,
             s.cookie_samesite,
             s.enable_background_sync,
+            s.enable_google_ads_user_api,
             engine.dialect.name,
         )
         if s.enable_background_sync:
@@ -413,7 +414,8 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(upload_router)
     app.include_router(admin_router)
-    app.include_router(integrations_router)
+    if get_startup_settings().enable_google_ads_user_api:
+        app.include_router(integrations_router)
     app.include_router(client_settings_router)
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
