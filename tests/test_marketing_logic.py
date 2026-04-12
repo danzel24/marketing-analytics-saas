@@ -51,10 +51,20 @@ def test_break_even_campaign_near_boundary() -> None:
     assert abs(float(m["contribution_profit"])) < 1e-6
 
 
-def test_zero_spend_positive_revenue_is_profitable() -> None:
+def test_zero_spend_positive_revenue_is_no_ad_spend() -> None:
     m = MarketingService.calculate_campaign_metrics(revenue=500.0, cost=0.0, margin=0.4)
-    assert m["status"] == "profitable"
+    assert m["status"] == "no_ad_spend"
     assert m["roas"] == 0.0
+    assert float(m["marketing_profit"]) > 0
+    assert "ROAS se nepočítá" in str(m["status_reason"])
+
+
+def test_zero_spend_recommendation_avoids_roas_break_even_copy() -> None:
+    m = MarketingService.calculate_campaign_metrics(revenue=500.0, cost=0.0, margin=0.4)
+    rec = MarketingService.generate_campaign_recommendation(m, "Orphan", window_days=30)
+    combined = str(rec.get("rec_reason", "")) + str(rec.get("message", ""))
+    assert "bod zvratu" not in combined.lower()
+    assert "0.00" not in str(rec.get("rec_reason", ""))
 
 
 def test_zero_spend_zero_revenue_is_insufficient_data() -> None:

@@ -331,6 +331,13 @@ function getStatusMeta(status) {
         insightType: "info",
         icon: "",
       };
+    case "no_ad_spend":
+      return {
+        label: "Bez nákladů na reklamu",
+        class: "roas-medium",
+        insightType: "info",
+        icon: "ℹ️",
+      };
     default:
       return { label: "Neznámé", class: "", insightType: "info", icon: "❓" };
   }
@@ -385,6 +392,7 @@ function shortTableReason(status) {
   if (st === "at_risk") return "Mírně pod BE";
   if (st === "loss") return "ROAS pod BE";
   if (st === "insufficient_data") return "—";
+  if (st === "no_ad_spend") return "ROAS se nepočítá";
   return "—";
 }
 
@@ -887,6 +895,7 @@ function renderTopCampaigns(topCampaigns, breakEven) {
     if (status === "loss") profitClass = "profit-negative";
     else if (status === "at_risk") profitClass = "profit-neutral";
     else if (status === "profitable") profitClass = "profit-positive";
+    else if (status === "no_ad_spend") profitClass = "profit-positive";
     else profitClass = "";
 
     // Status badge: always includes financial amount, sign-correct
@@ -907,12 +916,16 @@ function renderTopCampaigns(topCampaigns, breakEven) {
     const cpaCell = cpaEmpty
       ? `<span class="cell-cpa-empty" aria-hidden="true"></span>`
       : `<span class="cell-money__value">${money(cpaVal)}</span>`;
+    const roasCell =
+      status === "no_ad_spend"
+        ? `<span class="roas-secondary roas-secondary--na" title="ROAS se nepočítá při nulových nákladech na reklamu.">— <span class="roas-secondary__be">(ROAS n/a)</span></span>`
+        : `<span class="roas-secondary roas-secondary--inline">${roasFmt(c.roas)} <span class="roas-secondary__be">(BE: ${roasFmt(campaignBreakEven)})</span></span>`;
     tr.innerHTML = `
       <td class="cell-campaign"><span class="cell-campaign__name">${escapeHtml(humanizeCampaignName(String(c.campaign || "")))}</span></td>
       <td class="num cell-money"><span class="cell-money__value">${money(c.cost ?? c.spend)}</span></td>
       <td class="num cell-money"><span class="cell-money__value">${money(c.revenue)}</span></td>
       <td class="num cell-money ${profitClass}"><span class="cell-money__value"><strong>${signedMoney(pv)}</strong></span></td>
-      <td class="num cell-roas"><span class="roas-secondary roas-secondary--inline">${roasFmt(c.roas)} <span class="roas-secondary__be">(BE: ${roasFmt(campaignBreakEven)})</span></span></td>
+      <td class="num cell-roas">${roasCell}</td>
       <td class="num cell-cpa-dim cell-money">${cpaCell}</td>
       <td class="cell-status"><span class="cell-status__flex"><span class="status-badge ${statusCls}">${statusPrefix}${statusLabel}</span></span></td>
       <td class="cell-reason">${reasonCell}</td>

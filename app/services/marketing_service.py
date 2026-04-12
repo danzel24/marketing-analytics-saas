@@ -178,6 +178,9 @@ class MarketingService:
 
         if revenue_f <= 0.0 and cost_f <= 0.0:
             status = "insufficient_data"
+        elif cost_f <= 0.0 and revenue_f > 0.0:
+            # ROAS is undefined at zero spend; do not classify like a paid ROAS band.
+            status = "no_ad_spend"
         elif cost_f <= 0.0:
             status = "profitable" if contribution_profit >= 0 else "loss"
         else:
@@ -221,6 +224,9 @@ class MarketingService:
         if status == "insufficient_data":
             assert rev <= 0 and cost <= 0
             return
+        if status == "no_ad_spend":
+            assert rev > 0 and cost <= 0
+            return
         if cost <= 0:
             return
         assert be_raw > 0
@@ -246,6 +252,16 @@ class MarketingService:
             return {
                 "reason": "Žádná aktivita v období",
                 "details": {"revenue": float(metrics.get("revenue", 0) or 0), "cost": float(metrics.get("cost", 0) or 0)},
+            }
+
+        if status == "no_ad_spend":
+            return {
+                "reason": "Bez reklamních nákladů — ROAS se nepočítá; výsledek interpretujte opatrně.",
+                "details": {
+                    "revenue": float(metrics.get("revenue", 0) or 0),
+                    "cost": 0.0,
+                    "profit": profit,
+                },
             }
 
         if status == "loss":
@@ -285,6 +301,8 @@ class MarketingService:
         status = str(row.get("status", ""))
         if status == "insufficient_data":
             return {"code": "needs_data", "label": "⚪ Nedostatek dat — zatím nedoporučujeme akci"}
+        if status == "no_ad_spend":
+            return {"code": "no_ad_spend", "label": "ℹ️ Bez nákladů na reklamu"}
         if status == "loss":
             return {"code": "stop", "label": "❌ Vypnout"}
         if status == "at_risk":
@@ -310,6 +328,9 @@ class MarketingService:
             return
         if st == "insufficient_data":
             assert act == "needs_data", (st, act, row.get("campaign"))
+            return
+        if st == "no_ad_spend":
+            assert act == "no_ad_spend", (st, act, row.get("campaign"))
             return
         if st == "loss":
             assert act == "stop", (st, act, row.get("campaign"))
@@ -358,7 +379,8 @@ class MarketingService:
         return [
             r
             for r in rows
-            if str(r.get("source", "paid")) != "organic" and str(r.get("status", "")) != "insufficient_data"
+            if str(r.get("source", "paid")) != "organic"
+            and str(r.get("status", "")) not in ("insufficient_data", "no_ad_spend")
         ]
 
     def _campaign_day_stats_map(
@@ -505,6 +527,26 @@ class MarketingService:
                 "roas_vs_break_even": "",
             }
 
+        if status == "no_ad_spend":
+            return {
+                "type": "hold",
+                "severity": "info",
+                "rec_status": "ℹ️ Bez nákladů na reklamu",
+                "rec_action": "Ověřte přiřazení nákladů",
+                "rec_reason": "Nulové náklady na reklamu — ROAS se nepočítá. Výsledek interpretujte opatrně.",
+                "message": "Tržby bez přiřazených reklamních nákladů — ROAS nevyhodnocujeme.",
+                "action_label": "Ověřit data",
+                "budget_cut_pct": 0,
+                "impact_text": "Zkontrolujte, zda náklady patří do importu nebo jiné kampaně.",
+                "reason_short": "Bez nákladů na reklamu — ROAS n/a",
+                "action_steps": "",
+                "days_in_loss": dil,
+                "days_total": dt,
+                "days_above_break_even_roas": dab,
+                "days_with_spend": dws,
+                "roas_vs_break_even": "",
+            }
+
         if status == "loss":
             cut = max(reduction_pct, 30 if roas < 1 else 20)
             thin_evidence = (
@@ -644,7 +686,9 @@ class MarketingService:
         campaigns = [
             c
             for c in campaigns
-            if str(c.get("status", "")) != "insufficient_data" and str(c.get("source", "paid")) != "organic"
+            if str(c.get("status", "")) != "insufficient_data"
+            and str(c.get("status", "")) != "no_ad_spend"
+            and str(c.get("source", "paid")) != "organic"
         ]
         if not campaigns:
             return None
@@ -1674,7 +1718,10 @@ class MarketingService:
                     "contribution_profit": "revenue × margin − spend",
                     "break_even_roas": "1 / margin (margin as decimal, e.g. 0.4 = 40 %)",
                     "average_roas_dashboard": "sum(paid revenue) / sum(paid spend) ve stejném okně jako přehled",
-                    "campaign_roas_bands": "loss if ROAS < 0.9×BE; profitable if ROAS > 1.1×BE; else at_risk",
+                    "campaign_roas_bands": (
+                        "no_ad_spend if revenue>0 and spend=0 (ROAS n/a); else loss if ROAS < 0.9×BE; "
+                        "profitable if ROAS > 1.1×BE; else at_risk"
+                    ),
                 },
             }
         return payload
