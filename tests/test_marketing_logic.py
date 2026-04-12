@@ -56,7 +56,7 @@ def test_zero_spend_positive_revenue_is_no_ad_spend() -> None:
     assert m["status"] == "no_ad_spend"
     assert m["roas"] == 0.0
     assert float(m["marketing_profit"]) > 0
-    assert "ROAS se nepočítá" in str(m["status_reason"])
+    assert "reklamní náklady" in str(m["status_reason"])
 
 
 def test_zero_spend_recommendation_avoids_roas_break_even_copy() -> None:

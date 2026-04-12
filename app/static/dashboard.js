@@ -311,6 +311,16 @@ function lossPhrase(value) {
   return `ztráta ${absMoney(value)}`;
 }
 
+/** Revenue without ad spend in the window — same semantics as backend ``no_ad_spend`` (defensive for missing/legacy status). */
+function isCampaignZeroSpendRow(c) {
+  if (!c || typeof c !== "object") return false;
+  const st = String(c.status ?? "").trim();
+  if (st === "no_ad_spend") return true;
+  const spendVal = toFiniteNumber(c.cost ?? c.spend);
+  const revVal = toFiniteNumber(c.revenue);
+  return revVal > 0 && spendVal <= 0;
+}
+
 function getStatusMeta(status) {
   switch (status) {
     case "loss":
@@ -392,7 +402,9 @@ function shortTableReason(status) {
   if (st === "at_risk") return "Mírně pod BE";
   if (st === "loss") return "ROAS pod BE";
   if (st === "insufficient_data") return "—";
-  if (st === "no_ad_spend") return "ROAS se nepočítá";
+  if (st === "no_ad_spend") {
+    return "ROAS se nepočítá, protože v datech nejsou reklamní náklady.";
+  }
   return "—";
 }
 
@@ -886,16 +898,18 @@ function renderTopCampaigns(topCampaigns, breakEven) {
   for (const c of sorted) {
     const rv = toFiniteNumber(c.roas);
     const pv = toFiniteNumber(c.profit);
-    const status = String(c.status || "");
-    const statusMeta = getStatusMeta(status);
+    const statusRaw = String(c.status ?? "").trim();
+    const isZeroSpendRow = isCampaignZeroSpendRow(c);
+    const statusForUi = isZeroSpendRow ? "no_ad_spend" : statusRaw;
+    const statusMeta = getStatusMeta(statusForUi);
     const campaignBreakEven = toFiniteNumber(c.break_even_roas || be);
 
     // Profit cell colour from backend status (single source of truth)
     let profitClass;
-    if (status === "loss") profitClass = "profit-negative";
-    else if (status === "at_risk") profitClass = "profit-neutral";
-    else if (status === "profitable") profitClass = "profit-positive";
-    else if (status === "no_ad_spend") profitClass = "profit-positive";
+    if (statusForUi === "loss") profitClass = "profit-negative";
+    else if (statusForUi === "at_risk") profitClass = "profit-neutral";
+    else if (statusForUi === "profitable") profitClass = "profit-positive";
+    else if (statusForUi === "no_ad_spend") profitClass = "profit-positive";
     else profitClass = "";
 
     // Status badge: always includes financial amount, sign-correct
@@ -904,7 +918,9 @@ function renderTopCampaigns(topCampaigns, breakEven) {
     const statusPrefix = statusMeta.icon ? `${statusMeta.icon} ` : "";
 
     const actionLabel = escapeHtml(String(c.decision_label ?? "—"));
-    const reasonCell = escapeHtml(shortTableReason(status));
+    const reasonCell = escapeHtml(
+      String(c.table_reason || "").trim() || shortTableReason(statusForUi),
+    );
     const impactCell = escapeHtml(String(c.impact_text ?? "").trim() || "—");
     const rawRec = String(c?.recommendation?.message || "").trim();
     const titleAttr = rawRec ? ` title="${escapeHtml(rawRec)}"` : "";
@@ -916,10 +932,9 @@ function renderTopCampaigns(topCampaigns, breakEven) {
     const cpaCell = cpaEmpty
       ? `<span class="cell-cpa-empty" aria-hidden="true"></span>`
       : `<span class="cell-money__value">${money(cpaVal)}</span>`;
-    const roasCell =
-      status === "no_ad_spend"
-        ? `<span class="roas-secondary roas-secondary--na" title="ROAS se nepočítá při nulových nákladech na reklamu.">— <span class="roas-secondary__be">(ROAS n/a)</span></span>`
-        : `<span class="roas-secondary roas-secondary--inline">${roasFmt(c.roas)} <span class="roas-secondary__be">(BE: ${roasFmt(campaignBreakEven)})</span></span>`;
+    const roasCell = isZeroSpendRow
+      ? `<span class="roas-secondary roas-secondary--na" title="ROAS se nepočítá při nulových nákladech na reklamu.">— <span class="roas-secondary__be">(N/A)</span></span>`
+      : `<span class="roas-secondary roas-secondary--inline">${roasFmt(c.roas)} <span class="roas-secondary__be">(BE: ${roasFmt(campaignBreakEven)})</span></span>`;
     tr.innerHTML = `
       <td class="cell-campaign"><span class="cell-campaign__name">${escapeHtml(humanizeCampaignName(String(c.campaign || "")))}</span></td>
       <td class="num cell-money"><span class="cell-money__value">${money(c.cost ?? c.spend)}</span></td>

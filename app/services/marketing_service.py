@@ -9,6 +9,9 @@ from sqlmodel import Session
 
 logger = logging.getLogger(__name__)
 
+# Table „Důvod“ column for zero-spend rows (explicit copy for API + UI fallback).
+NO_AD_SPEND_TABLE_REASON = "ROAS se nepočítá, protože v datech nejsou reklamní náklady."
+
 # NOTE: We keep existing CSV-based API methods for now (routes depend on them).
 from app.core.domain_errors import InternalMisuseError, NotFoundError
 from app.models.campaign import Campaign
@@ -256,7 +259,7 @@ class MarketingService:
 
         if status == "no_ad_spend":
             return {
-                "reason": "Bez reklamních nákladů — ROAS se nepočítá; výsledek interpretujte opatrně.",
+                "reason": NO_AD_SPEND_TABLE_REASON,
                 "details": {
                     "revenue": float(metrics.get("revenue", 0) or 0),
                     "cost": 0.0,
@@ -1549,6 +1552,9 @@ class MarketingService:
                 "roas_vs_break_even": str(recommendation.get("roas_vs_break_even", "")),
                 "source": "organic" if self._is_organic_campaign(camp.name) else "paid",
                 "cpa": round(k["cpa"], 4),
+                "table_reason": (
+                    NO_AD_SPEND_TABLE_REASON if str(metrics_view.get("status", "")) == "no_ad_spend" else ""
+                ),
             }
             MarketingService._attach_decision_fields(row)
             rows.append(row)
