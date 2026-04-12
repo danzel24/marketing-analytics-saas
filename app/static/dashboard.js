@@ -1099,6 +1099,42 @@ function makeChartOptions(tooltipLineFormatter) {
   };
 }
 
+function countFiniteChartPoints(data) {
+  if (!Array.isArray(data)) return 0;
+  return data.filter((x) => x !== null && x !== undefined && Number.isFinite(Number(x))).length;
+}
+
+/**
+ * With ``spanGaps: false`` and ``pointRadius: 0``, a single non-null point draws no segment and no dot.
+ * Scriptable radius shows one clear marker only when the series has exactly one finite value.
+ */
+function linePointRadiusSinglePointOnly(context) {
+  const v = context.raw;
+  if (v === null || v === undefined || !Number.isFinite(Number(v))) return 0;
+  const series = context.chart.data.datasets[context.datasetIndex]?.data;
+  return countFiniteChartPoints(series) === 1 ? 5 : 0;
+}
+
+function linePointHoverRadiusSinglePointOnly(context) {
+  return linePointRadiusSinglePointOnly(context) > 0 ? 7 : 4;
+}
+
+function linePointBackgroundSinglePointOnly(context) {
+  if (linePointRadiusSinglePointOnly(context) <= 0) return "rgba(0,0,0,0)";
+  const c = context.dataset.borderColor;
+  return typeof c === "string" ? c : "rgba(148,163,184,0.95)";
+}
+
+function linePointBorderSinglePointOnly(context) {
+  if (linePointRadiusSinglePointOnly(context) <= 0) return "rgba(0,0,0,0)";
+  const c = context.dataset.borderColor;
+  return typeof c === "string" ? c : "#94a3b8";
+}
+
+function linePointBorderWidthSinglePointOnly(context) {
+  return linePointRadiusSinglePointOnly(context) > 0 ? 2 : 0;
+}
+
 function renderCharts(data) {
   registerDashboardSparseXAxisPlugin();
   destroyCharts();
@@ -1163,8 +1199,11 @@ function renderCharts(data) {
         borderColor: "rgba(59,130,246,0.55)",
         backgroundColor: "rgba(59,130,246,0.06)",
         borderWidth: 1.5,
-        pointRadius: 0,
-        pointHoverRadius: 4,
+        pointRadius: linePointRadiusSinglePointOnly,
+        pointHoverRadius: linePointHoverRadiusSinglePointOnly,
+        pointBackgroundColor: linePointBackgroundSinglePointOnly,
+        pointBorderColor: linePointBorderSinglePointOnly,
+        pointBorderWidth: linePointBorderWidthSinglePointOnly,
         tension: 0.3,
         fill: true,
         spanGaps: false,
@@ -1183,8 +1222,11 @@ function renderCharts(data) {
         borderColor: "#f59e0b",
         backgroundColor: "rgba(245,158,11,0.15)",
         borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
+        pointRadius: linePointRadiusSinglePointOnly,
+        pointHoverRadius: linePointHoverRadiusSinglePointOnly,
+        pointBackgroundColor: linePointBackgroundSinglePointOnly,
+        pointBorderColor: linePointBorderSinglePointOnly,
+        pointBorderWidth: linePointBorderWidthSinglePointOnly,
         tension: 0.3,
         fill: true,
         spanGaps: false,
@@ -1203,8 +1245,11 @@ function renderCharts(data) {
         borderColor: "rgba(16,185,129,0.5)",
         backgroundColor: "rgba(16,185,129,0.06)",
         borderWidth: 1.5,
-        pointRadius: 0,
-        pointHoverRadius: 4,
+        pointRadius: linePointRadiusSinglePointOnly,
+        pointHoverRadius: linePointHoverRadiusSinglePointOnly,
+        pointBackgroundColor: linePointBackgroundSinglePointOnly,
+        pointBorderColor: linePointBorderSinglePointOnly,
+        pointBorderWidth: linePointBorderWidthSinglePointOnly,
         tension: 0.3,
         fill: true,
         spanGaps: false,
