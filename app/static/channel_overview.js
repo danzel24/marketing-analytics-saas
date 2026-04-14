@@ -73,7 +73,7 @@
     const params = new URLSearchParams(window.location.search);
     const days = Math.min(366, Math.max(1, parseInt(String(params.get("days") || "30"), 10) || 30));
     const hint = document.getElementById("coWindowHint");
-    if (hint) hint.textContent = `Okno: posledních ${days} dní (shodné s hlavním přehledem při ?days=).`;
+    if (hint) hint.textContent = `Okno: posledních ${days} dní.`;
 
     const adsBody = document.getElementById("coAdsBody");
     const shopBody = document.getElementById("coShopBody");
