@@ -17,7 +17,14 @@ from app.models.db_models import Campaign, CampaignMetric, Client
 from app.repositories.campaign_metric_repository import CampaignMetricRepository
 from app.repositories.campaign_repository_sql import CampaignRepository
 from app.services.marketing_service import MarketingService
-from app.services.multi_source_csv_service import MultiSourceCSVService
+from app.services.multi_source_csv_service import MultiSourceCSVService, _dates_from_czech_period_text
+
+
+def test_dates_from_czech_period_named_months() -> None:
+    _, end = _dates_from_czech_period_text("1. března 2026 - 31. března 2026")
+    assert end == date(2026, 3, 31)
+    _, end2 = _dates_from_czech_period_text("Období: 1. března 2026 – 31. března 2026")
+    assert end2 == date(2026, 3, 31)
 
 
 def test_channel_overview_window_hints_overlap(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -184,6 +191,55 @@ def test_client_orders_semicolon_excludes_cancelled(engine) -> None:
         assert by_d[date(2026, 4, 2)] == (50.0, 1)
 
 
+def test_meta_cz_monthly_iso_only_on_total_row_detail_dates_empty(engine) -> None:
+    """Souhrnný řádek nese ISO období; kampaně mají výdaj ale prázdné datumové sloupce."""
+    csv_content = (
+        "Název kampaně;Vydaná částka (CZK);Začátek reportování;Konce reportů\n"
+        ";0;2026-03-01;2026-03-31\n"
+        "Camp A;150,00;;\n"
+        "Camp B;200,00;;\n"
+    )
+    with Session(engine) as session:
+        client = Client(name="c_mtot", margin=0.4)
+        session.add(client)
+        session.commit()
+        session.refresh(client)
+        cr = CampaignRepository(session)
+        mr = CampaignMetricRepository(session)
+        svc = MultiSourceCSVService(cr, mr)
+        out = svc.import_meta_csv_bytes(csv_content.encode("utf-8"), client.id)
+        assert out["imported_metrics"] == 1
+        m = session.exec(select(CampaignMetric)).first()
+        assert m.metric_date == date(2026, 3, 31)
+        assert abs(float(m.spend) - 350.0) < 0.01
+
+
+def test_meta_cz_monthly_iso_dates_on_total_row_utf8_bom(engine) -> None:
+    """Real Meta UI: UTF-8 BOM, ISO in Začátek/Konce, souhrnný řádek první, kampaně bez opakovaných dat."""
+    csv_content = (
+        "\ufeff"
+        "Název kampaně;Dosah;Vydaná částka (CZK);Začátek reportování;Konce reportů\n"
+        ";0;0;2026-03-01;2026-03-31\n"
+        "Camp A;0;100,50;2026-03-01;2026-03-31\n"
+        "Camp B;0;200;2026-03-01;2026-03-31\n"
+    )
+    with Session(engine) as session:
+        client = Client(name="c_miso", margin=0.4)
+        session.add(client)
+        session.commit()
+        session.refresh(client)
+        cr = CampaignRepository(session)
+        mr = CampaignMetricRepository(session)
+        svc = MultiSourceCSVService(cr, mr)
+        out = svc.import_meta_csv_bytes(csv_content.encode("utf-8"), client.id)
+        assert out["detected_file_type"] == "meta_cz_monthly_campaign"
+        assert out["imported_metrics"] == 1
+        m = session.exec(select(CampaignMetric)).first()
+        assert m is not None
+        assert m.metric_date == date(2026, 3, 31)
+        assert abs(float(m.spend) - 300.5) < 0.01
+
+
 def test_meta_cz_monthly_skips_empty_campaign_total_row(engine) -> None:
     csv_content = (
         "Název kampaně;Dosah;Vydaná částka (CZK);Začátek reportování;Konce reportů\n"
@@ -206,6 +262,33 @@ def test_meta_cz_monthly_skips_empty_campaign_total_row(engine) -> None:
         assert m is not None
         assert m.metric_date == date(2026, 4, 30)
         assert abs(float(m.spend) - 300.0) < 0.01
+
+
+def test_google_cz_ui_named_month_period_line(engine) -> None:
+    """Real Google UI: title, Czech month names in period (not d.m.y), then header row."""
+    csv_content = (
+        "Výkon kampaní\n"
+        "1. března 2026 - 31. března 2026\n"
+        "Kampaň;Stav kampaně;Typ kampaně;Prokliky;Zobr.;Cena;Konverze;Konverzní poměr\n"
+        ";0;0;10;10;50,00;0;0%\n"
+        "Brand;Povoleno;Vyhledávání;1;1;25,5;1;1%\n"
+        "Generic;Povoleno;Výkonnost;2;2;75;2;1%\n"
+    )
+    with Session(engine) as session:
+        client = Client(name="c_gnm", margin=0.4)
+        session.add(client)
+        session.commit()
+        session.refresh(client)
+        cr = CampaignRepository(session)
+        mr = CampaignMetricRepository(session)
+        svc = MultiSourceCSVService(cr, mr)
+        out = svc.import_google_csv_bytes(csv_content.encode("utf-8"), client.id)
+        assert out["detected_file_type"] == "google_cz_campaign_period"
+        assert out["imported_metrics"] == 1
+        m = session.exec(select(CampaignMetric)).first()
+        assert m is not None
+        assert m.metric_date == date(2026, 3, 31)
+        assert abs(float(m.spend) - 100.5) < 0.01
 
 
 def test_google_cz_ui_preamble_and_campaign_rows(engine) -> None:

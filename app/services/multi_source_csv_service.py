@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import csv
 import logging
 import re
+import unicodedata
 from collections import defaultdict
+from io import StringIO
 from datetime import date, timedelta
 from typing import Any
 
@@ -51,6 +54,50 @@ _ORDER_STATUS_CANCELLED_MARKERS = (
 _CZ_DATE_TOKEN_RE = re.compile(
     r"\b(\d{1,2})\s*[\./]\s*(\d{1,2})\s*[\./]\s*(\d{2,4})\b",
 )
+# e.g. "1. března 2026" (Google UI period line) — month word after NFKD + strip combining marks.
+_CZ_NAMED_MONTH_DATE_RE = re.compile(r"\b(\d{1,2})\.\s*([a-z]+)\s+(\d{4})\b", re.IGNORECASE)
+_ISO_DATE_IN_TEXT_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
+
+_CZ_MONTH_NAME_TO_NUM: dict[str, int] = {
+    "ledna": 1,
+    "leden": 1,
+    "unora": 2,
+    "unor": 2,
+    "brezna": 3,
+    "brezen": 3,
+    "dubna": 4,
+    "duben": 4,
+    "kvetna": 5,
+    "kveten": 5,
+    "cervna": 6,
+    "cerven": 6,
+    "cervence": 7,
+    "cervenec": 7,
+    "srpna": 8,
+    "srpen": 8,
+    "zari": 9,
+    "rijna": 10,
+    "rijen": 10,
+    "listopadu": 11,
+    "listopad": 11,
+    "prosince": 12,
+    "prosinec": 12,
+}
+
+
+def _ascii_month_token(word: str) -> str:
+    n = unicodedata.normalize("NFKD", str(word).strip().lower())
+    return "".join(ch for ch in n if not unicodedata.combining(ch))
+
+
+def _iso_dates_in_text(text: str) -> list[date]:
+    out: list[date] = []
+    for m in _ISO_DATE_IN_TEXT_RE.finditer(text or ""):
+        try:
+            out.append(date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+        except ValueError:
+            continue
+    return out
 
 
 def _dates_from_czech_period_text(text: str) -> tuple[date | None, date | None]:
@@ -66,6 +113,18 @@ def _dates_from_czech_period_text(text: str) -> tuple[date | None, date | None]:
             found.append(date(y, mo, d))
         except ValueError:
             continue
+    nt = _ascii_month_token(text)
+    nt = re.sub(r"[\u2013\u2014\-–—]", " ", nt)
+    for m in _CZ_NAMED_MONTH_DATE_RE.finditer(nt):
+        d_d, mon_w, y = int(m.group(1)), _ascii_month_token(m.group(2)), int(m.group(3))
+        mo = _CZ_MONTH_NAME_TO_NUM.get(mon_w)
+        if mo is None:
+            continue
+        try:
+            found.append(date(y, mo, d_d))
+        except ValueError:
+            continue
+    found.extend(_iso_dates_in_text(text))
     if not found:
         return None, None
     return min(found), max(found)
@@ -554,6 +613,7 @@ class MultiSourceCSVService(CSVService):
                 "vydana castka",
                 "vydaná částka czk",
                 "vydana castka czk",
+                "vydaná částka (czk)",
             ],
         )
         if camp and spend:
@@ -570,13 +630,17 @@ class MultiSourceCSVService(CSVService):
             header_map,
             ["konce reportů", "konce reportu", "konec reportů", "konec reportu", "reporting ends"],
         )
-        blob = f"{self._cell(row, z_h)} {self._cell(row, k_h)}"
-        _s, end = _dates_from_czech_period_text(blob)
+        z_cell = self._cell(row, z_h)
+        k_cell = self._cell(row, k_h)
+        # ISO YYYY-MM-DD (real Meta UI) and Czech numeric / month-name text share one extractor.
+        _s, end = _dates_from_czech_period_text(f"{z_cell} {k_cell}")
         if end:
             return end
-        return _dates_from_czech_period_text(self._cell(row, k_h))[1] or _dates_from_czech_period_text(
-            self._cell(row, z_h)
-        )[1]
+        _, end2 = _dates_from_czech_period_text(k_cell)
+        if end2:
+            return end2
+        _, end3 = _dates_from_czech_period_text(z_cell)
+        return end3
 
     def _parse_meta_cz_detail_row(
         self,
@@ -599,6 +663,8 @@ class MultiSourceCSVService(CSVService):
                     "vydaná částka",
                     "vydana castka",
                     "vydaná částka czk",
+                    "vydana castka czk",
+                    "vydaná částka (czk)",
                     "amount spent",
                     "spend",
                 ],
@@ -736,12 +802,12 @@ class MultiSourceCSVService(CSVService):
         skipped_total = 0
         report_end: date | None = None
         for idx, row in enumerate(rows, start=2):
+            if report_end is None:
+                report_end = self._meta_cz_report_end_from_row(row, header_map)
             spend, err, skip = self._parse_meta_cz_detail_row(row, header_map, idx)
             if skip == "total_row":
                 skipped_total += 1
                 continue
-            if report_end is None:
-                report_end = self._meta_cz_report_end_from_row(row, header_map)
             if err:
                 errors.append({"row": idx, "reason": err})
                 continue
@@ -863,11 +929,11 @@ class MultiSourceCSVService(CSVService):
         report_end: date | None = None
         detail_rows = 0
         for idx, row in enumerate(rows, start=2):
+            if report_end is None:
+                report_end = self._meta_cz_report_end_from_row(row, header_map)
             spend, err, skip = self._parse_meta_cz_detail_row(row, header_map, idx)
             if skip == "total_row":
                 continue
-            if report_end is None:
-                report_end = self._meta_cz_report_end_from_row(row, header_map)
             if err:
                 errors.append({"row": idx, "reason": err, "data": row})
                 continue
@@ -928,6 +994,20 @@ class MultiSourceCSVService(CSVService):
 
     # --- Google Ads (spend only, CSV — not OAuth) ------------------------
 
+    @staticmethod
+    def _csv_split_line_cells(line: str, delimiter: str) -> list[str]:
+        """One logical CSV row — handles quotes (unlike naive ``split(delimiter)``)."""
+        try:
+            row = next(csv.reader(StringIO(line), delimiter=delimiter))
+        except csv.Error:
+            return [p.strip() for p in line.split(delimiter)]
+        return [str(c).strip() for c in row]
+
+    def _google_ui_header_blob(self, line: str, delimiter: str) -> str:
+        parts = [p for p in self._csv_split_line_cells(line, delimiter) if p]
+        norms = [self._normalize_header(p) for p in parts]
+        return " ".join(norms)
+
     def _load_google_cz_campaign_table(self, content: str) -> tuple[list[dict[str, str]], list[str], dict[str, str], date | None]:
         """
         Google UI export: title line(s), period text, then header (Kampaň, Prokliky, Zobr., Cena, …).
@@ -944,10 +1024,15 @@ class MultiSourceCSVService(CSVService):
         delim = ","
         for j, (_ln_i, line) in enumerate(nonempty):
             dlm = ";" if line.count(";") > line.count(",") else ","
-            parts = [p.strip() for p in line.split(dlm)]
-            norms = [self._normalize_header(p) for p in parts if p]
-            blob = " ".join(norms)
-            if "kampan" in blob and "cena" in blob and ("proklik" in blob or "zobr" in blob or "konverz" in blob):
+            blob = self._google_ui_header_blob(line, dlm)
+            has_volume = (
+                "proklik" in blob
+                or "zobr" in blob
+                or "zobrazen" in blob
+                or "konverz" in blob
+                or "kliknut" in blob
+            )
+            if "kampan" in blob and "cena" in blob and has_volume:
                 header_j = j
                 delim = dlm
                 break
