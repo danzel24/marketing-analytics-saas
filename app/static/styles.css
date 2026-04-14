@@ -2308,3 +2308,36 @@ body {
     flex-wrap: wrap;
   }
 }
+
+/* Multi-source upload + channel overview pilot */
+.multi-upload-block {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+}
+
+.multi-upload-block__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.multi-upload-block__hint {
+  margin: 0 0 0.75rem;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.channel-overview-metrics {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.channel-overview-metrics strong {
+  font-weight: 600;
+}
+
+.channel-overview-muted {
+  opacity: 0.92;
+  border: 1px dashed var(--border-strong);
+}

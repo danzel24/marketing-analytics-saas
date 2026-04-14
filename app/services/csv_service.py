@@ -42,10 +42,11 @@ class CSVService:
 
     def clear_imported_data_for_client(self, client_id: int, confirmation: str | None) -> dict[str, int]:
         """
-        Remove all CSV-imported campaigns and their metrics for ``client_id``.
+        Remove all user-uploaded CSV campaigns and their metrics for ``client_id``.
 
-        Only rows with ``Campaign.platform == \"imported\"`` are removed (integration campaigns untouched).
-        Users and Client row are never deleted.
+        Clears unified import (``imported``) and multi-source pilot platforms (``csv_shop_orders``,
+        ``csv_meta_ads``, ``csv_google_ads``). OAuth/API integration campaigns (e.g. ``google_ads``)
+        are not removed. Users and Client row are never deleted.
         """
         cid = self._require_tenant_client_id(client_id)
         if (confirmation or "").strip() != CLEAR_IMPORTED_CONFIRMATION:
@@ -116,9 +117,8 @@ class CSVService:
             "preview_rows": preview_rows,
         }
 
-    def _load_revenue_csv_rows(
-        self, content: str
-    ) -> tuple[list[dict[str, str]], list[str], dict[str, str], str]:
+    def _load_csv_table(self, content: str) -> tuple[list[dict[str, str]], list[str], dict[str, str]]:
+        """Parse delimiter and rows; no unified-marketing format detection."""
         if not (content or "").strip():
             raise ValidationError(
                 "Soubor je prázdný. Nahrajte CSV s hlavičkou a alespoň jedním datovým řádkem.",
@@ -170,9 +170,41 @@ class CSVService:
             )
         self._maybe_raise_suspect_single_column_delimiter(headers, rows)
 
-        normalized_headers = [self._normalize_header(h) for h in headers]
-        normalized_set = set(normalized_headers)
         header_map = {self._normalize_header(h): h for h in headers}
+        return rows, headers, header_map
+
+    def _load_csv_table_from_line_block(
+        self, lines: list[str], *, delimiter: str
+    ) -> tuple[list[dict[str, str]], list[str], dict[str, str]]:
+        """Parse a block of text lines (first row = header) with the given delimiter."""
+        if not lines:
+            raise ValidationError(
+                "CSV neobsahuje hlavičku sloupců.",
+                code=ErrorCode.CSV_HEADER_MISSING,
+            )
+        cleaned = [ln.strip() for ln in lines if ln.strip() and not all(c in ";, \t" for c in ln.strip())]
+        if not cleaned:
+            raise ValidationError(
+                "Po vynechání prázdných řádků nezbývají žádná data.",
+                code=ErrorCode.CSV_NO_DATA,
+            )
+        reader = csv.DictReader(StringIO("\n".join(cleaned)), delimiter=delimiter)
+        rows = list(reader)
+        headers = list(reader.fieldnames or [])
+        if not headers:
+            raise ValidationError(
+                "CSV neobsahuje hlavičku sloupců.",
+                code=ErrorCode.CSV_HEADER_MISSING,
+            )
+        self._maybe_raise_suspect_single_column_delimiter(headers, rows)
+        header_map = {self._normalize_header(h): h for h in headers}
+        return rows, headers, header_map
+
+    def _load_revenue_csv_rows(
+        self, content: str
+    ) -> tuple[list[dict[str, str]], list[str], dict[str, str], str]:
+        rows, headers, header_map = self._load_csv_table(content)
+        normalized_set = {self._normalize_header(h) for h in headers}
         detected_format = self._detect_format(normalized_set, header_map, headers)
         return rows, headers, header_map, detected_format
 

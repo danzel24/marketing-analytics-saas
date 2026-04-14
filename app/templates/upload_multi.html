@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oddělené CSV importy — Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/upload_multi.js"></script>
+  </head>
+  <body class="auth-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <a href="/dashboard" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Oddělené importy (pilot)</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav">
+        <a class="topbar__nav-link" href="/dashboard">Přehled</a>
+        <a class="topbar__nav-link" href="/upload">Sjednocený CSV</a>
+        <a class="topbar__nav-link" href="/channel-overview">Přehled kanálů</a>
+      </nav>
+    </header>
+
+    <main class="auth-main">
+      <div class="card login-card auth-card auth-card--wide">
+        <h1 class="auth-card__title">Oddělené soubory: e-shop + Meta + Google</h1>
+        <p class="login-subtitle">
+          Nahrajte tři typy exportů zvlášť. Každý soubor má vlastní náhled a validaci. Tržby z e-shopu
+          <strong>nenavazujeme</strong> automaticky na konkrétní reklamní kanál — přehled kanálů ukazuje výdaje a tržby
+          odděleně.
+        </p>
+
+        <section class="upload-onboarding card" aria-labelledby="multiHonestyTitle">
+          <h2 id="multiHonestyTitle" class="upload-onboarding__title">Co aplikace záměrně nedělá</h2>
+          <ul class="upload-onboarding__list">
+            <li>Neurčuje, která objednávka přišla z Meta vs. Google (bez atribuce).</li>
+            <li>Nepočítá kanálový ROAS ani PNO z e-shopových tržeb.</li>
+            <li>Reklamní CSV zde slouží především k součtu <strong>výdajů</strong> podle platformy.</li>
+          </ul>
+          <p class="upload-onboarding__text">
+            Sjednocený soubor (datum + kampaň + tržby + náklady v jednom CSV) stále nahrajete na stránce
+            <a href="/upload">Nahrát sjednocený CSV</a>.
+          </p>
+        </section>
+
+        <div id="multiGlobalError" class="alert alert--error hidden" role="alert"></div>
+
+        <section class="multi-upload-block card" data-source="orders">
+          <h2 class="multi-upload-block__title">1. Objednávky (e-shop)</h2>
+          <p class="multi-upload-block__hint">
+            Export klienta: <code>code</code>, <code>date</code>, <code>statusName</code>, <code>totalPriceWithVat</code>
+            (často středník). Zrušené objednávky se do tržeb nepočítají. Dále Shopify / Shoptet / jednoduché datum + částka.
+          </p>
+          <div class="login-field">
+            <label for="fileOrders">Soubor CSV</label>
+            <input id="fileOrders" type="file" accept=".csv,text/csv" />
+          </div>
+          <div class="upload-form__actions">
+            <button type="button" class="btn btn--secondary js-preview" data-source="orders">Náhled</button>
+            <button type="button" class="btn btn--primary js-import" data-source="orders">Nahrát</button>
+          </div>
+          <p class="auth-loading hidden js-loading" aria-live="polite">Zpracovávám…</p>
+          <div class="alert alert--error hidden js-err" role="alert"></div>
+          <div class="alert alert--success hidden js-ok" role="status"></div>
+          <div class="upload-preview card hidden js-preview-panel" aria-live="polite"></div>
+        </section>
+
+        <section class="multi-upload-block card" data-source="meta">
+          <h2 class="multi-upload-block__title">2. Meta Ads</h2>
+          <p class="multi-upload-block__hint">
+            Měsíční český export: <code>Název kampaně</code>, <code>Vydaná částka (CZK)</code>, období reportu; první řádek bez
+            názvu kampaně = součet za období (přeskočíme). Nebo anglický denní export (Day + Amount spent).
+          </p>
+          <div class="login-field">
+            <label for="fileMeta">Soubor CSV</label>
+            <input id="fileMeta" type="file" accept=".csv,text/csv" />
+          </div>
+          <div class="upload-form__actions">
+            <button type="button" class="btn btn--secondary js-preview" data-source="meta">Náhled</button>
+            <button type="button" class="btn btn--primary js-import" data-source="meta">Nahrát</button>
+          </div>
+          <p class="auth-loading hidden js-loading" aria-live="polite">Zpracovávám…</p>
+          <div class="alert alert--error hidden js-err" role="alert"></div>
+          <div class="alert alert--success hidden js-ok" role="status"></div>
+          <div class="upload-preview card hidden js-preview-panel" aria-live="polite"></div>
+        </section>
+
+        <section class="multi-upload-block card" data-source="google">
+          <h2 class="multi-upload-block__title">3. Google Ads (CSV)</h2>
+          <p class="multi-upload-block__hint">
+            Český export výkonu kampaní: první řádky = název reportu + text období, pak hlavička
+            <code>Kampaň</code>, <code>Cena</code>, … Nebo anglický denní soubor (Day + Cost). OAuth synchronizace to
+            není.
+          </p>
+          <div class="login-field">
+            <label for="fileGoogle">Soubor CSV</label>
+            <input id="fileGoogle" type="file" accept=".csv,text/csv" />
+          </div>
+          <div class="upload-form__actions">
+            <button type="button" class="btn btn--secondary js-preview" data-source="google">Náhled</button>
+            <button type="button" class="btn btn--primary js-import" data-source="google">Nahrát</button>
+          </div>
+          <p class="auth-loading hidden js-loading" aria-live="polite">Zpracovávám…</p>
+          <div class="alert alert--error hidden js-err" role="alert"></div>
+          <div class="alert alert--success hidden js-ok" role="status"></div>
+          <div class="upload-preview card hidden js-preview-panel" aria-live="polite"></div>
+        </section>
+
+        <p class="login-subtitle" style="margin-top: 1.25rem">
+          Po úspěšném nahrání otevřete
+          <a href="/channel-overview">Přehled kanálů</a> (stejné okno dní jako u hlavního dashboardu zvolíte tam).
+        </p>
+
+        <div class="upload-danger-zone" aria-labelledby="clearMultiHeading">
+          <h2 id="clearMultiHeading" class="upload-danger-zone__title">Vymazat nahraná CSV data</h2>
+          <p class="upload-danger-zone__text">
+            Smaže sjednocený import i oddělené soubory (e-shop / Meta / Google CSV) pro váš účet. Integrace Google Ads přes
+            API (pokud ji používáte) se nemění. Akce je nevratná.
+          </p>
+          <button id="clearMultiBtn" type="button" class="btn btn--danger-outline">Vymazat všechna CSV data</button>
+          <p id="clearMultiLoading" class="auth-loading hidden" aria-live="polite">Mažu…</p>
+          <div id="clearMultiErr" class="alert alert--error hidden" role="alert"></div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

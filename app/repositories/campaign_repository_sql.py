@@ -78,11 +78,25 @@ class CampaignRepository:
         self.session.commit()
         return True
 
-    def delete_imported_campaigns_for_client(self, client_id: int, *, commit: bool = True) -> int:
-        """Delete campaigns with ``platform == \"imported\"`` for this tenant (CSV-imported rows only)."""
+    def delete_campaigns_for_platforms(
+        self,
+        client_id: int,
+        platforms: frozenset[str],
+        *,
+        commit: bool = True,
+    ) -> int:
+        """Delete campaigns whose platform is in ``platforms`` for this tenant."""
         cid = require_positive_client_id(client_id)
-        stmt = delete(Campaign).where(Campaign.client_id == cid).where(Campaign.platform == "imported")
+        if not platforms:
+            return 0
+        stmt = delete(Campaign).where(Campaign.client_id == cid).where(Campaign.platform.in_(platforms))  # type: ignore[union-attr]
         result = self.session.exec(stmt)
         if commit:
             self.session.commit()
         return int(result.rowcount or 0)
+
+    def delete_imported_campaigns_for_client(self, client_id: int, *, commit: bool = True) -> int:
+        """Delete all user-uploaded CSV campaigns (unified + multi-source); not OAuth integrations."""
+        from app.core.csv_upload_platforms import CSV_CLEAR_PLATFORM_FROZENSET
+
+        return self.delete_campaigns_for_platforms(client_id, CSV_CLEAR_PLATFORM_FROZENSET, commit=commit)

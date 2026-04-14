@@ -5,7 +5,15 @@ from typing import Any
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
-from sqlmodel import Session
+from sqlalchemy import func
+from sqlmodel import Session, select
+
+from app.core.csv_upload_platforms import (
+    PLATFORM_CSV_GOOGLE_ADS,
+    PLATFORM_CSV_META_ADS,
+    PLATFORM_CSV_SHOP_ORDERS,
+)
+from app.models.db_models import Campaign as DBCampaign, CampaignMetric
 
 logger = logging.getLogger(__name__)
 
@@ -1798,6 +1806,116 @@ class MarketingService:
             insights.append("ℹ️ Trend vidíte v grafech níže.")
 
         return insights[:5]
+
+    def channel_overview_db(self, *, client_id: int, days: int = 30) -> dict[str, Any]:
+        """
+        Multi-source CSV pilot: spend from Meta/Google CSV, revenue from shop CSV — same DB window as dashboard.
+        Does not attribute shop revenue to ad channels; no channel ROAS/PNO.
+        """
+        self._db_requirements()
+        cid = require_positive_client_id(client_id)
+        wd = max(int(days), 1)
+        date_from = date.today() - timedelta(days=wd - 1)
+
+        platforms = (PLATFORM_CSV_SHOP_ORDERS, PLATFORM_CSV_META_ADS, PLATFORM_CSV_GOOGLE_ADS)
+        stmt = (
+            select(
+                DBCampaign.platform,
+                func.coalesce(func.sum(CampaignMetric.spend), 0.0),
+                func.coalesce(func.sum(CampaignMetric.revenue), 0.0),
+                func.coalesce(func.sum(CampaignMetric.conversions), 0),
+                func.min(CampaignMetric.metric_date),
+                func.max(CampaignMetric.metric_date),
+            )
+            .select_from(CampaignMetric)
+            .join(DBCampaign, DBCampaign.id == CampaignMetric.campaign_id)
+            .where(DBCampaign.client_id == cid)
+            .where(DBCampaign.platform.in_(platforms))
+            .where(CampaignMetric.metric_date >= date_from)
+            .group_by(DBCampaign.platform)
+        )
+        rows = list(self._session.exec(stmt))
+
+        agg: dict[str, tuple[float, float, int, date | None, date | None]] = {}
+        for r in rows:
+            pf = str(r[0])
+            agg[pf] = (float(r[1]), float(r[2]), int(r[3] or 0), r[4], r[5])
+
+        def block(pf: str) -> dict[str, Any]:
+            if pf not in agg:
+                return {
+                    "has_data": False,
+                    "spend": 0.0,
+                    "revenue": 0.0,
+                    "conversions_sum": 0,
+                    "period_in_data": None,
+                }
+            sp, rev, conv, dmin, dmax = agg[pf]
+            period = None
+            if dmin is not None and dmax is not None:
+                period = {"date_min": dmin.isoformat(), "date_max": dmax.isoformat()}
+            return {
+                "has_data": True,
+                "spend": round(sp, 2),
+                "revenue": round(rev, 2),
+                "conversions_sum": conv,
+                "period_in_data": period,
+            }
+
+        shop = block(PLATFORM_CSV_SHOP_ORDERS)
+        meta = block(PLATFORM_CSV_META_ADS)
+        goog = block(PLATFORM_CSV_GOOGLE_ADS)
+
+        disclaimers = [
+            "Oddělené výdaje Meta a Google pocházejí z nahraných reklamních CSV — neobsahují tržby z e-shopu.",
+            (
+                "Tržby a počet objednávek z e-shopu: v souboru mohou být delší historie; do tohoto přehledu "
+                f"se započítají jen objednávky, jejichž datum spadá do posledních {wd} dní (stejně jako u výdajů z importu). "
+                "Zrušené / stornované objednávky se při importu neukládají do tržeb."
+            ),
+            "Tržby z e-shopu nejsou rozdělené podle reklamního kanálu (Meta vs. Google) — kanálový ROAS ani PNO zde neuvádíme.",
+            (
+                "Měsíční Meta a export výkonu kampaní z Google UI ukládáme jako jeden součet na koncové datum reportu; "
+                "v tomto okně se zobrazí jen pokud toto datum spadá do zvolených dní."
+            ),
+        ]
+
+        has_any = shop["has_data"] or meta["has_data"] or goog["has_data"]
+
+        return {
+            "window_days": wd,
+            "window_start": date_from.isoformat(),
+            "has_any_multi_source_data": has_any,
+            "ad_channels": {
+                "meta_ads": {
+                    "label": "Meta Ads",
+                    "spend_czk": meta["spend"],
+                    "has_data": meta["has_data"],
+                    "period_in_data": meta["period_in_data"],
+                },
+                "google_ads_csv": {
+                    "label": "Google Ads (CSV soubor)",
+                    "spend_czk": goog["spend"],
+                    "has_data": goog["has_data"],
+                    "period_in_data": goog["period_in_data"],
+                },
+            },
+            "e_shop": {
+                "label": "E-shop (objednávkový CSV)",
+                "total_revenue_czk": shop["revenue"],
+                "order_or_row_basis": (
+                    "Počet = součet objednávek započítaných za den v importu (1 řádek = 1 objednávka; bez zrušených stavů)."
+                ),
+                "order_or_row_count": int(shop["conversions_sum"]),
+                "has_data": shop["has_data"],
+                "period_in_data": shop["period_in_data"],
+            },
+            "not_shown": {
+                "channel_shop_revenue": "Bez spolehlivého propojení objednávek s kanálem neuvádíme tržby podle Meta/Google.",
+                "channel_roas_pno": "Kanálový ROAS a PNO by vyžadovaly atribuci, kterou tento import neprovádí.",
+            },
+            "disclaimers": disclaimers,
+        }
 
     def campaigns_overview(self, campaigns: list[Campaign]) -> list[CampaignOut]:
         result: list[CampaignOut] = []

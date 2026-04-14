@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Přehled kanálů (CSV pilot) — Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/channel_overview.js"></script>
+  </head>
+  <body class="auth-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <a href="/dashboard" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Přehled kanálů (pilot)</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav">
+        <a class="topbar__nav-link" href="/dashboard">Dashboard</a>
+        <a class="topbar__nav-link" href="/upload/multi">Oddělené importy</a>
+        <a class="topbar__nav-link" href="/upload">Sjednocený CSV</a>
+      </nav>
+    </header>
+
+    <main class="auth-main container" style="max-width: 720px">
+      <div class="card login-card auth-card auth-card--wide">
+        <h1 class="auth-card__title">Přehled podle zdroje (bez atribuce)</h1>
+        <p class="login-subtitle" id="coWindowHint">Načítám…</p>
+        <div id="coImportBanner" class="alert alert--success hidden" role="status" aria-live="polite"></div>
+
+        <section class="card channel-overview-honesty" style="margin-bottom: 1rem; border: 1px solid var(--border)">
+          <h2 class="upload-onboarding__title" style="font-size: 1rem">Důležité</h2>
+          <ul class="upload-onboarding__list" id="coDisclaimers"></ul>
+        </section>
+
+        <section class="card" style="margin-bottom: 1rem">
+          <h2 class="upload-onboarding__title" style="font-size: 1rem">Reklamní výdaje (z CSV exportů)</h2>
+          <div id="coAdsBody" class="channel-overview-metrics">—</div>
+        </section>
+
+        <section class="card" style="margin-bottom: 1rem">
+          <h2 class="upload-onboarding__title" style="font-size: 1rem">E-shop (z objednákového CSV)</h2>
+          <div id="coShopBody" class="channel-overview-metrics">—</div>
+        </section>
+
+        <section class="card channel-overview-muted">
+          <h2 class="upload-onboarding__title" style="font-size: 1rem">Co záměrně nezobrazujeme</h2>
+          <ul class="upload-onboarding__list" id="coNotShown"></ul>
+        </section>
+
+        <p class="login-subtitle" style="margin-top: 1rem">
+          Detailní tabulka kampaní a doporučení zůstávají na
+          <a href="/dashboard">hlavním dashboardu</a> (sjednocený CSV nebo jiná data).
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

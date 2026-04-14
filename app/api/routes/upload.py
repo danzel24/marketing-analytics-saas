@@ -12,6 +12,7 @@ from app.models.db_models import User
 from app.repositories.campaign_metric_repository import CampaignMetricRepository
 from app.repositories.campaign_repository_sql import CampaignRepository
 from app.services.csv_service import CSVService
+from app.services.multi_source_csv_service import MultiSourceCSVService
 
 router = APIRouter(prefix="/api/v1/upload", tags=["upload"])
 
@@ -57,3 +58,84 @@ def clear_imported_data(
     metric_repo = CampaignMetricRepository(session)
     service = CSVService(campaign_repo, metric_repo)
     return service.clear_imported_data_for_client(current_user.client_id, body.confirm)
+
+
+# --- Multi-source CSV (pilot; unified flow above stays unchanged) ---
+
+
+@router.post("/multi/orders/preview")
+async def preview_multi_orders_csv(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = MultiSourceCSVService(campaign_repo, metric_repo)
+    return service.preview_orders_csv_bytes(raw)
+
+
+@router.post("/multi/orders")
+async def upload_multi_orders_csv(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = MultiSourceCSVService(campaign_repo, metric_repo)
+    return service.import_orders_csv_bytes(raw, current_user.client_id)
+
+
+@router.post("/multi/meta/preview")
+async def preview_multi_meta_csv(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = MultiSourceCSVService(campaign_repo, metric_repo)
+    return service.preview_meta_csv_bytes(raw)
+
+
+@router.post("/multi/meta")
+async def upload_multi_meta_csv(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = MultiSourceCSVService(campaign_repo, metric_repo)
+    return service.import_meta_csv_bytes(raw, current_user.client_id)
+
+
+@router.post("/multi/google/preview")
+async def preview_multi_google_csv(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = MultiSourceCSVService(campaign_repo, metric_repo)
+    return service.preview_google_csv_bytes(raw)
+
+
+@router.post("/multi/google")
+async def upload_multi_google_csv(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    raw = await file.read()
+    campaign_repo = CampaignRepository(session)
+    metric_repo = CampaignMetricRepository(session)
+    service = MultiSourceCSVService(campaign_repo, metric_repo)
+    return service.import_google_csv_bytes(raw, current_user.client_id)

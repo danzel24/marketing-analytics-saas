@@ -42,6 +42,16 @@ def upload_page(request: Request) -> HTMLResponse:
     return template_response(request=request, name="upload.html")
 
 
+@router.get("/upload/multi", response_class=HTMLResponse)
+def upload_multi_page(request: Request) -> HTMLResponse:
+    return template_response(request=request, name="upload_multi.html")
+
+
+@router.get("/channel-overview", response_class=HTMLResponse)
+def channel_overview_page(request: Request) -> HTMLResponse:
+    return template_response(request=request, name="channel_overview.html")
+
+
 @router.get("/api/v1/dashboard/overview")
 def dashboard_overview(
     current_user: User = Depends(get_current_user),
@@ -102,6 +112,16 @@ def dashboard_full(
         top_n=top_n,
         calc_debug=debug_payload,
     )
+
+
+@router.get("/api/v1/dashboard/channel-overview")
+def dashboard_channel_overview(
+    current_user: User = Depends(get_current_user),
+    days: int = Query(30, ge=1, description="Počet dní (stejné okno jako přehled)"),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    svc = MarketingService(session=session)
+    return svc.channel_overview_db(client_id=current_user.client_id, days=days)
 
 
 @router.get("/api/v1/dashboard/insights")

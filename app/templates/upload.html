@@ -24,6 +24,8 @@
       </div>
       <nav class="topbar__nav">
         <a class="topbar__nav-link" href="/dashboard">Přehled</a>
+        <a class="topbar__nav-link" href="/upload/multi">Oddělené CSV</a>
+        <a class="topbar__nav-link" href="/channel-overview">Přehled kanálů</a>
       </nav>
     </header>
 
@@ -85,8 +87,9 @@
         <div class="upload-danger-zone" aria-labelledby="clearImportHeading">
           <h2 id="clearImportHeading" class="upload-danger-zone__title">Vymazat importovaná data</h2>
           <p class="upload-danger-zone__text">
-            Smaže všechny kampaně a metriky vytvořené importem CSV (platforma „imported“) pro váš účet. Účet a organizace
-            zůstanou zachované. Akce je nevratná.
+            Smaže všechny kampaně a metriky z uživatelského importu CSV: sjednocený soubor (platforma „imported“) i pilot
+            oddělených souborů (e-shop / Meta / Google CSV). Integrace Google Ads přes API se nemění. Účet zůstane zachován.
+            Akce je nevratná.
           </p>
           <button id="clearImportBtn" type="button" class="btn btn--danger-outline">Vymazat importovaná data</button>
           <p id="clearImportLoading" class="auth-loading hidden" aria-live="polite">Mažu importovaná data…</p>
