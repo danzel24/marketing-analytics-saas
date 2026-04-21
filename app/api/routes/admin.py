@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app.core.deps import require_admin
+from app.core.web_templates import template_response
 from app.database import get_session
 from app.models.db_models import User
 from app.services.admin_service import AdminService
@@ -32,21 +33,18 @@ class ClearDataIn(BaseModel):
 
 
 @router.get("/admin", response_class=HTMLResponse)
-def admin_page(current_user: User = Depends(require_admin)) -> str:  # noqa: ARG001
-    return """
-    <!doctype html>
-    <html lang="cs">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Administrace</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; padding: 24px;">
-        <h1>Administrace</h1>
-        <p>Tato stránka je připravena pro administrátorské nástroje.</p>
-      </body>
-    </html>
-    """
+def admin_page(request: Request, _current_user: User = Depends(require_admin)) -> HTMLResponse:
+    return template_response(request=request, name="admin.html")
+
+
+@router.get("/admin/users", response_class=HTMLResponse)
+def admin_users_page(
+    request: Request,
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(require_admin),
+) -> HTMLResponse:
+    users = AdminService().list_registered_users_overview(session)
+    return template_response(request=request, name="admin_users.html", context={"users": users})
 
 
 @router.post("/api/v1/admin/clear-data")

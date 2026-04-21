@@ -41,6 +41,7 @@ def register(payload: RegisterIn, response: Response, session: Session = Depends
 def login(payload: LoginIn, response: Response, session: Session = Depends(get_session)) -> TokenOut:
     svc = AuthService()
     user = svc.authenticate(session, email=str(payload.email), password=payload.password)
+    svc.record_successful_password_login(session, user)
     refresh_ttl = REFRESH_TOKEN_EXPIRES_SECONDS if payload.remember_me else REFRESH_TOKEN_SHORT_EXPIRES_SECONDS
     tokens = svc.issue_tokens_for_user(
         user,

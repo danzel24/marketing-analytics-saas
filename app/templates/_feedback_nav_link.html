@@ -1,0 +1,8 @@
+{% if feedback_href %}
+<a
+  class="topbar__nav-link"
+  href="{{ feedback_href }}"
+  {% if feedback_open_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+  >{{ feedback_label }}</a
+>
+{% endif %}

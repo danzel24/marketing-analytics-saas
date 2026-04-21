@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uživatelé — administrace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      table.admin-users {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+      }
+      table.admin-users th,
+      table.admin-users td {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.5rem 0.6rem;
+        text-align: left;
+      }
+      table.admin-users th {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body class="auth-page" style="padding: 24px">
+    <p><a href="/admin">← Administrace</a> · <a href="/dashboard">Přehled</a></p>
+    <h1>Registrovaní uživatelé</h1>
+    <p class="login-subtitle">E-mail, pracovní prostor, registrace a poslední přihlášení (heslem).</p>
+    <table class="admin-users">
+      <thead>
+        <tr>
+          <th>E-mail</th>
+          <th>Pracovní prostor</th>
+          <th>Role</th>
+          <th>Registrace (UTC)</th>
+          <th>Poslední přihlášení (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.email }}</td>
+          <td>{{ u.client_name }}</td>
+          <td>{{ u.role }}</td>
+          <td>{% if u.registered_at %}{{ u.registered_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}</td>
+          <td>{% if u.last_login_at %}{{ u.last_login_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

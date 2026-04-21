@@ -9,11 +9,25 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse
 
+from app.core.config import get_startup_settings
 from app.core.web_paths import TEMPLATES_DIR
 
 logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+def _merge_public_template_context(context: dict[str, Any] | None) -> dict[str, Any]:
+    """Inject feedback CTA vars; explicit ``context`` keys override."""
+    s = get_startup_settings()
+    merged: dict[str, Any] = {
+        "feedback_href": s.feedback_href,
+        "feedback_label": s.feedback_label,
+        "feedback_open_new_tab": s.feedback_open_new_tab,
+    }
+    if context:
+        merged.update(context)
+    return merged
 
 
 def template_response(
@@ -26,7 +40,7 @@ def template_response(
     """
     Render HTML via Starlette Jinja2Templates using explicit kwargs (stable across Starlette versions).
     """
-    ctx: dict[str, Any] = dict(context) if context else {}
+    ctx = _merge_public_template_context(context)
     return templates.TemplateResponse(
         request=request,
         name=name,

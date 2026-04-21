@@ -145,6 +145,8 @@ def _ensure_user_token_version_column() -> None:
             conn.exec_driver_sql('ALTER TABLE "user" ADD COLUMN token_version INTEGER NOT NULL DEFAULT 1')
         if "role" not in cols:
             conn.exec_driver_sql('ALTER TABLE "user" ADD COLUMN role TEXT NOT NULL DEFAULT "user"')
+        if "last_login_at" not in cols:
+            conn.exec_driver_sql('ALTER TABLE "user" ADD COLUMN last_login_at DATETIME')
 
 
 def _ensure_client_margin_column() -> None:

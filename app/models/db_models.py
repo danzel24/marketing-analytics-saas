@@ -25,6 +25,8 @@ class User(SQLModel, table=True):
     token_version: int = Field(default=1, index=True)
     role: str = Field(default="user", index=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
+    # last_login_at: updated on successful POST /api/v1/auth/login only (not register/refresh).
+    last_login_at: Optional[datetime] = Field(default=None, index=True)
 
 
 class Campaign(SQLModel, table=True):

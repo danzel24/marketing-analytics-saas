@@ -17,7 +17,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.db_models import User
+from app.models.db_models import User, utcnow
 from app.repositories.refresh_token_jti_repository import RefreshTokenJtiRepository
 from app.repositories.tenant_scope import require_positive_client_id
 from app.repositories.user_repository import UserRepository
@@ -130,6 +130,15 @@ class AuthService:
         if user.id is None:
             raise InvalidCredentialsError()
         return user
+
+    def record_successful_password_login(self, session: Session, user: User) -> None:
+        """Update ``last_login_at`` after a successful ``/auth/login`` (not register or refresh)."""
+        if user.id is None:
+            return
+        user.last_login_at = utcnow()
+        session.add(user)
+        session.commit()
+        session.refresh(user)
 
     def issue_tokens(
         self,

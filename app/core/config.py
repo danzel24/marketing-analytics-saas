@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from app.core.domain_errors import InvalidClientIdError
 
@@ -67,6 +68,31 @@ class Settings:
     dashboard_calc_debug: bool
 
 
+def _parse_feedback_settings() -> tuple[str | None, str, bool]:
+    """
+    Optional feedback CTA: ``FEEDBACK_URL`` (https form, etc.) or ``FEEDBACK_EMAIL`` (mailto).
+    If both are set, URL wins. Label from ``FEEDBACK_LINK_TEXT`` (default Czech).
+    """
+    label_raw = (os.getenv("FEEDBACK_LINK_TEXT") or "").strip()
+    label = label_raw or "Poslat zpětnou vazbu"
+
+    raw_url = os.getenv("FEEDBACK_URL", "").strip()
+    raw_email = os.getenv("FEEDBACK_EMAIL", "").strip()
+
+    if raw_url:
+        low = raw_url.lower()
+        if low.startswith("javascript:") or low.startswith("data:"):
+            return None, label, False
+        new_tab = low.startswith("http://") or low.startswith("https://")
+        return raw_url, label, new_tab
+
+    if raw_email and "@" in raw_email:
+        subj = quote("Zpětná vazba — Marketingový přehled", safe="")
+        return f"mailto:{raw_email}?subject={subj}", label, False
+
+    return None, label, False
+
+
 @dataclass(frozen=True)
 class StartupSettings:
     """Validated once at process startup (web or worker)."""
@@ -80,6 +106,9 @@ class StartupSettings:
     enable_legacy_v1_csv_campaigns: bool
     data_csv_path: Path
     tenants_data_dir: Path
+    feedback_href: str | None
+    feedback_label: str
+    feedback_open_new_tab: bool
 
 
 def get_settings() -> Settings:
@@ -122,6 +151,7 @@ def get_startup_settings() -> StartupSettings:
     st = get_settings()
     data_csv = st.data_csv_path
     tenants = st.tenants_data_dir
+    fb_href, fb_label, fb_new_tab = _parse_feedback_settings()
 
     return StartupSettings(
         app_env=app_env,
@@ -133,6 +163,9 @@ def get_startup_settings() -> StartupSettings:
         enable_legacy_v1_csv_campaigns=enable_legacy_v1_csv_campaigns,
         data_csv_path=data_csv,
         tenants_data_dir=tenants,
+        feedback_href=fb_href,
+        feedback_label=fb_label,
+        feedback_open_new_tab=fb_new_tab,
     )
 
 
