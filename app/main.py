@@ -29,7 +29,7 @@ from app.core.request_id import (
 )
 from app.core.auth_cookies import clear_refresh_cookie, set_refresh_cookie
 from app.core.config import get_startup_settings, validate_startup_config
-from app.core.rate_limit import auth_rate_limit_response_or_none
+from app.core.rate_limit import auth_rate_limit_response_or_none, upload_rate_limit_response_or_none
 from app.core.structured_logging import access_log_middleware, configure_structured_logging
 from app.core.web_paths import STATIC_DIR, log_web_paths
 from app.core.web_templates import template_response_safe
@@ -77,10 +77,17 @@ _SKIP_SILENT_REFRESH_PATHS = frozenset(
 
 
 def create_app() -> FastAPI:
+    startup = get_startup_settings()
+    doc_urls: dict[str, str | None] = (
+        {"docs_url": None, "redoc_url": None, "openapi_url": None}
+        if startup.is_production
+        else {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+    )
     app = FastAPI(
         title="Marketing Analytics API",
         version="1.0.0",
         description="API for marketing analytics",
+        **doc_urls,
     )
 
     @app.exception_handler(AppError)
@@ -402,6 +409,9 @@ def create_app() -> FastAPI:
         limited = auth_rate_limit_response_or_none(request)
         if limited is not None:
             return limited
+        limited = upload_rate_limit_response_or_none(request)
+        if limited is not None:
+            return limited
         return await call_next(request)
 
     @app.middleware("http")
@@ -470,6 +480,10 @@ def create_app() -> FastAPI:
         return app.openapi_schema
 
     app.openapi = custom_openapi  # type: ignore[method-assign]
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
 
     @app.get("/api")
     def api_root() -> dict[str, Any]:
