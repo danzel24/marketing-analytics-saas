@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Přidat lead — administrace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      .lead-form {
+        margin-top: 1rem;
+        max-width: 38rem;
+        display: grid;
+        gap: 0.85rem;
+      }
+      .lead-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.88rem;
+      }
+      .lead-form input,
+      .lead-form select,
+      .lead-form textarea {
+        padding: 0.4rem 0.55rem;
+        font-family: inherit;
+      }
+      .lead-form textarea {
+        min-height: 6rem;
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body class="auth-page" style="padding: 24px">
+    <p><a href="/admin/leads">← Leady</a> · <a href="/admin">Administrace</a></p>
+    <h1>Přidat lead</h1>
+    <form class="lead-form" method="post" action="/admin/leads/new">
+      <label>
+        Firma *
+        <input type="text" name="company_name" required maxlength="512" autocomplete="organization" />
+      </label>
+      <label>
+        Web
+        <input type="text" name="website" maxlength="512" placeholder="eshop.cz" />
+      </label>
+      <label>
+        Jméno kontaktu
+        <input type="text" name="contact_name" maxlength="255" />
+      </label>
+      <label>
+        E-mail
+        <input type="email" name="contact_email" maxlength="255" />
+      </label>
+      <label>
+        LinkedIn
+        <input type="text" name="contact_linkedin" maxlength="512" placeholder="profilová URL / handle" />
+      </label>
+      <label>
+        Role
+        <input type="text" name="role" maxlength="255" />
+      </label>
+      <label>
+        Zdroj leadu (text)
+        <input type="text" name="source" maxlength="255" />
+      </label>
+      <label>
+        Stav
+        <select name="status">
+          {% for st in suggested_statuses %}
+          <option value="{{ st }}" {% if st == "new" %}selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Síla signálu
+        <select name="signal_strength">
+          {% for sg in signal_strengths %}
+          <option value="{{ sg }}" {% if sg == "weak" %}selected{% endif %}>{{ sg }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Úroveň rozhodování
+        <select name="decision_level">
+          <option value="">—</option>
+          {% for d in decision_levels %}
+          <option value="{{ d }}">{{ d }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Zdroj pravdy
+        <select name="source_of_truth">
+          <option value="">—</option>
+          {% for z in source_of_truth_opts %}
+          <option value="{{ z }}">{{ z }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Poslední kontakt (časové pásmo: Praha — prázdné = nezadáno)
+        <input type="datetime-local" name="last_contacted_at" />
+      </label>
+      <label>
+        Další follow-up (datum, Praha jako kalendářní den)
+        <input type="date" name="next_follow_up_at" />
+      </label>
+      <label>
+        Další krok
+        <textarea name="next_action" maxlength="512"></textarea>
+      </label>
+      <label>
+        Poznámky
+        <textarea name="notes"></textarea>
+      </label>
+      <p><button type="submit">Uložit lead</button></p>
+    </form>
+  </body>
+</html>

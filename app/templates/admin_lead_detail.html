@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ lead.company_name }} — lead</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      .muted {
+        color: rgba(255, 255, 255, 0.52);
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 10rem 1fr;
+        gap: 0.35rem 1rem;
+        font-size: 0.92rem;
+        margin-top: 0.75rem;
+        max-width: 44rem;
+      }
+      .detail-grid dt {
+        margin: 0;
+        font-weight: 600;
+      }
+      .detail-grid dd {
+        margin: 0;
+      }
+      table.admin-leads {
+        width: 100%;
+        max-width: 56rem;
+        border-collapse: collapse;
+        margin-top: 0.75rem;
+        font-size: 0.86rem;
+      }
+      table.admin-leads th,
+      table.admin-leads td {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.45rem 0.5rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      .section {
+        margin-top: 2rem;
+        max-width: 44rem;
+      }
+      .section h2 {
+        font-size: 1rem;
+      }
+      .lead-edit label,
+      .ix-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.88rem;
+        margin-top: 0.75rem;
+      }
+      .lead-edit input,
+      .lead-edit select,
+      .lead-edit textarea,
+      .ix-form input,
+      .ix-form select,
+      .ix-form textarea {
+        padding: 0.4rem 0.55rem;
+        font-family: inherit;
+        max-width: 100%;
+      }
+      .lead-edit textarea,
+      .ix-form textarea {
+        min-height: 5rem;
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body class="auth-page" style="padding: 24px">
+    <p><a href="/admin/leads">← Leady</a> · <a href="/admin/leads/today">Follow-upy dnes</a> · <a href="/admin">Administrace</a></p>
+    <h1>{{ lead.company_name }}</h1>
+
+    <dl class="detail-grid">
+      <dt>Firma</dt>
+      <dd>{{ lead.company_name }}</dd>
+      <dt>Web</dt>
+      <dd>{% if lead.website %}<a href="{{ lead.website }}" rel="noopener">{{ lead.website }}</a>{% else %}—{% endif %}</dd>
+      <dt>Kontakt</dt>
+      <dd>
+        {% if lead.contact_name %}{{ lead.contact_name }}{% else %}—{% endif %}
+        {% if lead.contact_email %}<br/><a href="mailto:{{ lead.contact_email }}">{{ lead.contact_email }}</a>{% endif %}
+      </dd>
+      <dt>LinkedIn</dt>
+      <dd>{{ lead.contact_linkedin or "—" }}</dd>
+      <dt>Role</dt>
+      <dd>{{ lead.role or "—" }}</dd>
+      <dt>Zdroj leadu</dt>
+      <dd>{{ lead.source or "—" }}</dd>
+    </dl>
+
+    <section class="section">
+      <h2>Aktualizovat stav</h2>
+      <form class="lead-edit" method="post" action="/admin/leads/{{ lead.id }}">
+        <label>
+          Stav
+          <select name="status">
+            {% for st in suggested_statuses %}
+            <option value="{{ st }}" {% if lead.status == st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Síla signálu
+          <select name="signal_strength">
+            {% for sg in signal_strengths %}
+            <option value="{{ sg }}" {% if lead.signal_strength == sg %}selected{% endif %}>{{ sg }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Úroveň rozhodování
+          <select name="decision_level">
+            <option value="">—</option>
+            {% for d in decision_levels %}
+            <option value="{{ d }}" {% if lead.decision_level == d %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Zdroj pravdy
+          <select name="source_of_truth">
+            <option value="">—</option>
+            {% for z in source_of_truth_opts %}
+            <option value="{{ z }}" {% if lead.source_of_truth == z %}selected{% endif %}>{{ z }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Poslední kontakt (<span class="muted">čas formuláře = Praha</span>)
+          <input type="datetime-local" name="last_contacted_at" value="{{ last_contacted_at_input }}" />
+        </label>
+        <label>
+          Další follow-up
+          <input type="date" name="next_follow_up_at" value="{{ next_follow_up_at_input }}" />
+        </label>
+        <label>
+          Další krok
+          <textarea name="next_action" maxlength="512">{{ lead.next_action or "" }}</textarea>
+        </label>
+        <label>
+          Poznámky
+          <textarea name="notes">{{ lead.notes or "" }}</textarea>
+        </label>
+        <p><button type="submit">Uložit změny</button></p>
+      </form>
+    </section>
+
+    <section class="section">
+      <h2>Historie komunikace</h2>
+      {% if interactions|length == 0 %}
+      <p class="muted">Zatím žádné záznamy.</p>
+      {% else %}
+      <table class="admin-leads">
+        <thead>
+          <tr>
+            <th>Čas (UTC)</th>
+            <th>Kanál</th>
+            <th>Směr</th>
+            <th>Shrnutí</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ix in interactions %}
+          <tr>
+            <td>{{ ix.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ ix.channel }}</td>
+            <td>{{ ix.direction }}</td>
+            <td>{{ ix.message_summary }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <h2>Přidat poznámku / záznam</h2>
+      <form class="ix-form" method="post" action="/admin/leads/{{ lead.id }}/interactions">
+        <label>
+          Kanál
+          <select name="channel">
+            {% for ch in interaction_channels %}
+            <option value="{{ ch }}">{{ ch }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Směr / typ záznamu
+          <select name="direction">
+            {% for d in interaction_directions %}
+            <option value="{{ d }}" {% if d == "note" %}selected{% endif %}>{{ d }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Shrnutí (nutné pro vlastní práci)
+          <textarea name="message_summary" maxlength="16000"></textarea>
+        </label>
+        <p><button type="submit">Přidat záznam</button></p>
+      </form>
+    </section>
+  </body>
+</html>

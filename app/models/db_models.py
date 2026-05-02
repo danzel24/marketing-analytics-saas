@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Optional
 
+from sqlalchemy import Column, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -72,3 +73,38 @@ class RefreshTokenJti(SQLModel, table=True):
     expires_at: datetime = Field(index=True)
     used_at: datetime = Field(default_factory=utcnow, index=True)
 
+
+class Lead(SQLModel, table=True):
+    """Internal admin outreach / validation (Lead OS); not scoped to SaaS tenants."""
+
+    __tablename__ = "lead"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_name: str = Field(index=True, max_length=512)
+    website: Optional[str] = Field(default=None, max_length=512)
+    contact_name: Optional[str] = Field(default=None, max_length=255)
+    contact_email: Optional[str] = Field(default=None, index=True, max_length=255)
+    contact_linkedin: Optional[str] = Field(default=None, max_length=512)
+    role: Optional[str] = Field(default=None, max_length=255)
+    source: Optional[str] = Field(default=None, max_length=255)
+    status: str = Field(default="new", index=True, max_length=64)
+    signal_strength: str = Field(default="weak", index=True, max_length=32)
+    decision_level: Optional[str] = Field(default=None, max_length=64)
+    source_of_truth: Optional[str] = Field(default=None, max_length=64)
+    last_contacted_at: Optional[datetime] = Field(default=None, index=True)
+    next_follow_up_at: Optional[date] = Field(default=None, index=True)
+    next_action: Optional[str] = Field(default=None, max_length=512)
+    notes: Optional[str] = Field(default=None, sa_column=Column(Text))
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+    updated_at: datetime = Field(default_factory=utcnow, index=True)
+
+
+class LeadInteraction(SQLModel, table=True):
+    __tablename__ = "leadinteraction"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    lead_id: int = Field(foreign_key="lead.id", index=True)
+    channel: str = Field(default="email", max_length=32)
+    direction: str = Field(default="outbound", max_length=32)
+    message_summary: str = Field(sa_column=Column(Text, nullable=False))
+    created_at: datetime = Field(default_factory=utcnow, index=True)

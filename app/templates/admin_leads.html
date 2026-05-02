@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Leady — administrace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      table.admin-leads {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.88rem;
+      }
+      table.admin-leads th,
+      table.admin-leads td {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.45rem 0.5rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.admin-leads th {
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      tr.row-overdue td {
+        background: rgba(239, 68, 68, 0.12);
+      }
+      .lead-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: flex-end;
+        margin-top: 0.75rem;
+      }
+      .lead-filters label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+      }
+      .lead-filters input,
+      .lead-filters select {
+        min-width: 10rem;
+        padding: 0.35rem 0.5rem;
+      }
+      .muted {
+        color: rgba(255, 255, 255, 0.52);
+      }
+    </style>
+  </head>
+  <body class="auth-page" style="padding: 24px">
+    <p>
+      <a href="/admin">← Administrace</a> · <a href="/dashboard">Přehled</a> · <a href="/admin/leads/today">Follow-upy dnes</a> · <a href="/admin/leads/new">Přidat lead</a>
+    </p>
+    <h1>Leady</h1>
+    <form class="lead-filters" method="get" action="/admin/leads">
+      <label>
+        Stav
+        <select name="status">
+          <option value="">—</option>
+          {% for st in suggested_statuses %}
+          <option value="{{ st }}" {% if filter_status == st %}selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Síla signálu
+        <select name="signal_strength">
+          <option value="">—</option>
+          {% for sg in signal_strengths %}
+          <option value="{{ sg }}" {% if filter_signal_strength == sg %}selected{% endif %}>{{ sg }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Follow-up
+        <select name="followup">
+          <option value="all" {% if filter_followup == "all" %}selected{% endif %}>Vše</option>
+          <option value="today" {% if filter_followup == "today" %}selected{% endif %}>Termín dnes</option>
+          <option value="overdue" {% if filter_followup == "overdue" %}selected{% endif %}>Po termínu</option>
+          <option value="due" {% if filter_followup == "due" %}selected{% endif %}>Dnes nebo po termínu</option>
+          <option value="none" {% if filter_followup == "none" %}selected{% endif %}>Bez termínu</option>
+        </select>
+      </label>
+      <label style="flex: 1 1 16rem;">
+        Vyhledat (firma / kontakt / e-mail)
+        <input type="search" name="q" placeholder="Část názvu nebo jména…" value="{{ filter_q }}" />
+      </label>
+      <button type="submit">Filtrovat</button>
+    </form>
+    {% if leads|length == 0 %}
+    <p class="muted" style="margin-top: 1rem;">Žádné leady vyhovující filtru.</p>
+    {% else %}
+    <table class="admin-leads">
+      <thead>
+        <tr>
+          <th>Firma</th>
+          <th>Kontakt</th>
+          <th>Stav</th>
+          <th>Síla signálu</th>
+          <th>Úroveň rozhodování</th>
+          <th>Zdroj pravdy</th>
+          <th>Další krok</th>
+          <th>Další follow-up</th>
+          <th>Poslední kontakt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr {% if lead.next_follow_up_at and lead.next_follow_up_at < today_prague %}class="row-overdue"{% endif %}>
+          <td><strong><a href="/admin/leads/{{ lead.id }}">{{ lead.company_name }}</a></strong>{% if lead.website %}<br/><span class="muted">{{ lead.website }}</span>{% endif %}</td>
+          <td>
+            {% if lead.contact_name %}{{ lead.contact_name }}{% else %}—{% endif %}
+            {% if lead.contact_email %}<br/><span class="muted">{{ lead.contact_email }}</span>{% endif %}
+          </td>
+          <td>{{ lead.status }}</td>
+          <td>{{ lead.signal_strength }}</td>
+          <td>{{ lead.decision_level or "—" }}</td>
+          <td>{{ lead.source_of_truth or "—" }}</td>
+          <td>{{ lead.next_action or "—" }}</td>
+          <td>{% if lead.next_follow_up_at %}{{ lead.next_follow_up_at.isoformat() }}{% else %}—{% endif %}</td>
+          <td>
+            {% if lead.last_contacted_at %}
+            {{ lead.last_contacted_at.strftime('%Y-%m-%d %H:%M UTC') }}
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </body>
+</html>

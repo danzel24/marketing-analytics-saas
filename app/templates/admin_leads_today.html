@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Follow-upy dnes — administrace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      table.admin-leads {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.88rem;
+      }
+      table.admin-leads th,
+      table.admin-leads td {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.45rem 0.5rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.admin-leads th {
+        font-weight: 600;
+      }
+      tr.row-overdue td {
+        background: rgba(239, 68, 68, 0.12);
+      }
+      .muted {
+        color: rgba(255, 255, 255, 0.52);
+      }
+    </style>
+  </head>
+  <body class="auth-page" style="padding: 24px">
+    <p>
+      <a href="/admin">← Administrace</a> · <a href="/dashboard">Přehled</a> · <a href="/admin/leads">Všechny leady</a> · <a href="/admin/leads/new">Přidat lead</a>
+    </p>
+    <h1>Follow-upy dnes</h1>
+    <p class="login-subtitle">Dnes ({% if today_prague %}{{ today_prague.isoformat() }}{% endif %}) a po termínu — kromě <code>closed_no</code> a <code>warm_not_now</code> bez data follow-up.</p>
+    {% if leads|length == 0 %}
+    <p class="muted" style="margin-top: 1rem;">Žádné položky v dnešní frontě.</p>
+    {% else %}
+    <table class="admin-leads">
+      <thead>
+        <tr>
+          <th>Firma</th>
+          <th>Kontakt</th>
+          <th>Stav</th>
+          <th>Další krok</th>
+          <th>Follow-up</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr {% if lead.next_follow_up_at < today_prague %}class="row-overdue"{% endif %}>
+          <td><strong><a href="/admin/leads/{{ lead.id }}">{{ lead.company_name }}</a></strong></td>
+          <td>
+            {% if lead.contact_name %}{{ lead.contact_name }}{% else %}—{% endif %}
+            {% if lead.contact_email %}<br/><span class="muted">{{ lead.contact_email }}</span>{% endif %}
+          </td>
+          <td>{{ lead.status }}</td>
+          <td>{{ lead.next_action or "—" }}</td>
+          <td>{{ lead.next_follow_up_at.isoformat() if lead.next_follow_up_at else "—" }}</td>
+          <td>{% if lead.next_follow_up_at < today_prague %}<span class="muted">Po termínu</span>{% else %}<span class="muted">Dnes</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </body>
+</html>

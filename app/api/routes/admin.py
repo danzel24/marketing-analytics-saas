@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
+from app.api.routes.admin_leads import router as admin_leads_router
 from app.core.deps import require_admin
 from app.core.web_templates import template_response
 from app.database import get_session
@@ -16,6 +17,8 @@ from app.services.admin_service import AdminService
 
 router = APIRouter(tags=["admin"])
 logger = logging.getLogger(__name__)
+
+router.include_router(admin_leads_router)
 
 
 class ClearDataIn(BaseModel):
