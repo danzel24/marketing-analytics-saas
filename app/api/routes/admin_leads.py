@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from dataclasses import asdict
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
@@ -11,6 +13,7 @@ from app.core.web_templates import template_response
 from app.database import get_session
 from app.models.db_models import User
 from app.services.lead_admin_service import LeadAdminService, PRAGUE, today_prague
+from app.services.lead_import_service import MAX_CSV_BYTES, import_lead_os_csvs
 
 router = APIRouter(tags=["admin"])
 
@@ -71,6 +74,24 @@ def _utc_to_prague_datetime_local(dt: datetime | None) -> str:
 
 def _fmt_date_input(d: date | None) -> str:
     return d.isoformat() if d else ""
+
+
+def _reject_non_csv(upload: UploadFile, label: str) -> None:
+    fn = (upload.filename or "").strip().lower()
+    if not fn.endswith(".csv"):
+        raise HTTPException(status_code=400, detail=f"{label}: povolený jen soubor .csv")
+
+
+async def _read_csv_text(upload: UploadFile, *, label: str) -> str:
+    _reject_non_csv(upload, label)
+    raw = await upload.read()
+    mb = MAX_CSV_BYTES // (1024 * 1024)
+    if len(raw) > MAX_CSV_BYTES:
+        raise HTTPException(status_code=413, detail=f"{label}: příliš velký soubor (max {mb} MB)")
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"{label}: očekáváno UTF-8") from e
 
 
 @router.get("/admin/leads", response_class=HTMLResponse)
@@ -186,6 +207,40 @@ def admin_lead_new_post(
     }
     lead = svc.create_lead(session, data=payload)
     return RedirectResponse(url=f"/admin/leads/{lead.id}", status_code=303)
+
+
+@router.get("/admin/leads/import", response_class=HTMLResponse)
+def admin_leads_import_get(
+    request: Request,
+    _current_user: User = Depends(require_admin),
+) -> HTMLResponse:
+    return template_response(request=request, name="admin_leads_import.html", context={"summary": None})
+
+
+@router.post("/admin/leads/import", response_class=HTMLResponse)
+async def admin_leads_import_post(
+    request: Request,
+    session: Session = Depends(get_session),
+    _current_user: User = Depends(require_admin),
+    leads_file: UploadFile | None = File(None),
+    interactions_file: UploadFile | None = File(None),
+) -> HTMLResponse:
+    if leads_file is None or not (leads_file.filename or "").strip():
+        raise HTTPException(status_code=422, detail="Nahrajte CSV s leady")
+
+    leads_text = await _read_csv_text(leads_file, label="Leady CSV")
+    ix_text: str | None = None
+    if interactions_file is not None and (interactions_file.filename or "").strip():
+        ix_text = await _read_csv_text(interactions_file, label="Interakce CSV")
+
+    summary = import_lead_os_csvs(
+        session, leads_csv_text=leads_text, interactions_csv_text=ix_text
+    )
+    return template_response(
+        request=request,
+        name="admin_leads_import.html",
+        context={"summary": asdict(summary)},
+    )
 
 
 @router.get("/admin/leads/{lead_id}", response_class=HTMLResponse)

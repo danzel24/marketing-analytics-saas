@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Import leadů — administrace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <style>
+      .muted {
+        color: rgba(255, 255, 255, 0.52);
+      }
+      .summary-box {
+        margin-top: 1.25rem;
+        padding: 1rem 1.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        max-width: 38rem;
+        font-size: 0.92rem;
+      }
+      .err-list {
+        margin: 0.5rem 0 0;
+        padding-left: 1.25rem;
+        font-size: 0.85rem;
+        max-height: 280px;
+        overflow: auto;
+      }
+      .import-form label {
+        display: block;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+      }
+      .import-form input[type="file"] {
+        margin-top: 0.35rem;
+      }
+      code {
+        font-size: 0.86em;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body class="auth-page" style="padding: 24px">
+    <p><a href="/admin/leads">← Leady</a> · <a href="/admin">Administrace</a></p>
+    <h1>Import leadů (CSV)</h1>
+    <p class="login-subtitle">UTF-8, max ~2&nbsp;MB / soubor. Hlavička leadů musí přesně odpovídat sloupcům níže.</p>
+
+    {% if summary %}
+    <div class="summary-box">
+      <p><strong>Výsledek importu</strong></p>
+      <ul style="margin: 0.5rem 0 0; padding-left: 1.25rem;">
+        <li>Nové leady: <strong>{{ summary.leads_created }}</strong></li>
+        <li>Aktualizované leady (shoda klíče): <strong>{{ summary.leads_updated }}</strong></li>
+        <li>Přeskočené řádky (prázdné / nejednoznačné): <strong>{{ summary.leads_skipped_blank }}</strong></li>
+        <li>Importované interakce: <strong>{{ summary.interactions_created }}</strong></li>
+        <li>Přeskočené interakce: <strong>{{ summary.interactions_skipped }}</strong></li>
+      </ul>
+      {% if summary.errors %}
+      <p class="muted" style="margin-bottom: 0.25rem;"><strong>Zprávy a chyby</strong> (číslo řádku v CSV souboru; <code>2</code> = první datový řádek za hlavičkou)</p>
+      <ul class="err-list muted">
+        {% for e in summary.errors %}
+        <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    <p style="margin-top: 1.25rem;"><a href="/admin/leads/import">Další import</a> · <a href="/admin/leads">Seznam leadů</a></p>
+    {% else %}
+
+    <form class="import-form" method="post" action="/admin/leads/import" enctype="multipart/form-data">
+      <label>
+        CSV leadů *
+        <input type="file" name="leads_file" accept=".csv,text/csv" required />
+      </label>
+      <label>
+        CSV interakcí (volitelné)
+        <input type="file" name="interactions_file" accept=".csv,text/csv" />
+      </label>
+      <p style="margin-top: 1.25rem;"><button type="submit">Importovat</button></p>
+    </form>
+
+    <p class="muted" style="margin-top: 1.75rem; max-width: 44rem; font-size: 0.86rem;">
+      <strong>Leady CSV</strong> —
+      sloupce: <code>company_name</code>, <code>website</code>, <code>contact_name</code>, <code>contact_email</code>,
+      <code>contact_linkedin</code>, <code>role</code>, <code>source</code>, <code>status</code>, <code>signal_strength</code>,
+      <code>decision_level</code>, <code>source_of_truth</code>, <code>last_contacted_at</code>, <code>next_follow_up_at</code>,
+      <code>next_action</code>, <code>notes</code>
+      <br/>
+      <strong>Interakce CSV</strong> —
+      sloupce: <code>company_name</code>, <code>channel</code>, <code>direction</code>, <code>message_summary</code>, <code>created_at</code>
+      <br/>
+      Shoda leadu při aktualizaci: e‑mail vyplněn → firma normalizována + e‑mail (bez rozlišení velikosti písmen). Bez e‑mailu → firma + jméno kontaktu.
+      Bez obou kontaktů jen firma jednoznačná (jedna shoda podle firmy).
+    </p>
+    {% endif %}
+  </body>
+</html>
