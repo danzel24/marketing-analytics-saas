@@ -10,6 +10,15 @@
     <link rel="stylesheet" href="/static/styles.css" />
     <script defer src="/static/common.js"></script>
     <script defer src="/static/login.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (new URLSearchParams(window.location.search).get("reset") === "1") {
+          var el = document.getElementById("loginResetSuccess");
+          if (el) el.classList.remove("hidden");
+          history.replaceState(null, "", window.location.pathname);
+        }
+      });
+    </script>
   </head>
   <body class="auth-page">
     <header class="topbar topbar--auth">
@@ -31,6 +40,9 @@
     <main class="auth-main">
       <div class="card login-card auth-card">
         <h1 class="auth-card__title">Přihlášení</h1>
+        <div id="loginResetSuccess" class="auth-success hidden" role="alert">
+          <p>✓ Heslo bylo úspěšně změněno. Přihlaste se novým heslem.</p>
+        </div>
         <p class="login-subtitle">Zadejte e-mail a heslo pro přístup k přehledu.</p>
 
         <div class="login-field">
@@ -48,6 +60,7 @@
         <button id="loginBtn" type="button" class="btn login-btn btn--primary">Přihlásit se</button>
         <p id="loginLoading" class="auth-loading hidden">Přihlašuji…</p>
         <p id="loginError" class="login-error" role="alert"></p>
+        <p class="auth-forgot-link"><a href="/forgot-password">Zapomněli jste heslo?</a></p>
       </div>
     </main>
   </body>

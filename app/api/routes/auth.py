@@ -1,23 +1,29 @@
 from __future__ import annotations
 
 import logging
+import secrets
+from datetime import timedelta
 
-from fastapi import APIRouter, Cookie, Depends, Response
+from fastapi import APIRouter, Cookie, Depends, Request, Response
 from sqlmodel import Session
 
 from app.core.auth_cookies import clear_refresh_cookie, set_refresh_cookie
 from app.core.deps import get_current_user
-from app.core.domain_errors import UnauthorizedError
+from app.core.domain_errors import UnauthorizedError, ValidationError
 from app.core.security import (
     REFRESH_TOKEN_EXPIRES_SECONDS,
     REFRESH_TOKEN_SHORT_EXPIRES_SECONDS,
     decode_refresh_token,
+    hash_password,
 )
 from app.database import get_session
-from app.models.db_models import User
+from app.models.db_models import User, utcnow
 from app.repositories.client_repository import ClientRepository
-from app.schemas.auth import LoginIn, RegisterIn, TokenOut
+from app.repositories.password_reset_repository import PasswordResetRepository
+from app.repositories.user_repository import UserRepository
+from app.schemas.auth import ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut
 from app.services.auth_service import AuthService
+from app.services.email_service import send_password_reset_email
 from app.services.marketing_service import MarketingService
 
 router = APIRouter(tags=["auth"])
@@ -110,3 +116,62 @@ def get_me(
         "is_admin": str(getattr(current_user, "role", "user")) == "admin",
         "margin_percent": int(round(m * 100)),
     }
+
+
+@router.post("/api/v1/auth/forgot-password")
+def forgot_password(
+    body: ForgotPasswordIn,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> dict[str, str]:
+    """Request a password reset link.
+
+    Always returns 200 regardless of whether the email exists (prevents enumeration).
+    """
+    _SUCCESS = {
+        "status": "ok",
+        "message": "Pokud email existuje, přijde vám zpráva s odkazem pro obnovení hesla.",
+    }
+    user_repo = UserRepository()
+    user = user_repo.get_by_email_unscoped_internal(session, str(body.email), _internal_call=True)
+    if user is None or user.id is None:
+        return _SUCCESS
+
+    token = secrets.token_hex(32)  # 64-char hex
+    expires_at = utcnow() + timedelta(hours=1)
+    PasswordResetRepository().create_token(
+        session, user_id=user.id, token=token, expires_at=expires_at
+    )
+
+    base = str(request.base_url).rstrip("/")
+    reset_link = f"{base}/reset-password?token={token}"
+    send_password_reset_email(to_email=str(body.email), reset_link=reset_link)
+    logger.info("forgot_password token_issued user_id=%s", user.id)
+    return _SUCCESS
+
+
+@router.post("/api/v1/auth/reset-password")
+def reset_password(
+    body: ResetPasswordIn,
+    session: Session = Depends(get_session),
+) -> dict[str, str]:
+    """Consume a password reset token and set a new password."""
+    reset_repo = PasswordResetRepository()
+    user_repo = UserRepository()
+
+    token_row = reset_repo.get_valid_token(session, token=body.token)
+    if token_row is None:
+        raise ValidationError("Token je neplatný nebo vypršel. Požádejte o nový odkaz.")
+
+    user = user_repo.get_by_id_unscoped_internal(session, token_row.user_id, _internal_call=True)
+    if user is None:
+        raise ValidationError("Token je neplatný nebo vypršel. Požádejte o nový odkaz.")
+
+    user.password_hash = hash_password(body.new_password)
+    # Bump token_version to invalidate all existing JWT sessions
+    user.token_version = int(getattr(user, "token_version", 1) or 1) + 1
+    session.add(user)
+    reset_repo.mark_used(session, token_row=token_row)
+    session.commit()
+    logger.info("reset_password success user_id=%s", user.id)
+    return {"status": "ok", "message": "Heslo bylo úspěšně změněno."}

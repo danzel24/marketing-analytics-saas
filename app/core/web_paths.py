@@ -17,6 +17,8 @@ REQUIRED_TEMPLATE_FILES: tuple[str, ...] = (
     "register.html",
     "dashboard.html",
     "upload.html",
+    "forgot_password.html",
+    "reset_password.html",
     "error_404.html",
     "error_500.html",
     "error_http.html",

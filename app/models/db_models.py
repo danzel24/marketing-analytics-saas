@@ -108,3 +108,17 @@ class LeadInteraction(SQLModel, table=True):
     direction: str = Field(default="outbound", max_length=32)
     message_summary: str = Field(sa_column=Column(Text, nullable=False))
     created_at: datetime = Field(default_factory=utcnow, index=True)
+
+
+class PasswordResetToken(SQLModel, table=True):
+    """Single-use password reset tokens; expire after 1 hour."""
+
+    __tablename__ = "passwordresettoken"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    # 64-char hex string (secrets.token_hex(32))
+    token: str = Field(index=True, unique=True, max_length=128)
+    expires_at: datetime = Field(index=True)
+    used: bool = Field(default=False, index=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)

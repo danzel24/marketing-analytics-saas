@@ -204,6 +204,21 @@ def validate_startup_config() -> None:
     if not parent.exists():
         parent.mkdir(parents=True, exist_ok=True)
 
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    if not smtp_host:
+        logger.info(
+            "validate_startup_config smtp_not_configured: "
+            "SMTP_HOST not set — password reset emails will be written to the log. "
+            "Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM to enable email delivery."
+        )
+    else:
+        logger.info(
+            "validate_startup_config smtp_configured: host=%s port=%s from=%s",
+            smtp_host,
+            os.getenv("SMTP_PORT", "587"),
+            os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "(not set)",
+        )
+
 
 def csv_path_for_tenant(settings: Settings, tenant_id: str | None) -> Path:
     """

@@ -2533,3 +2533,79 @@ body {
   line-height: 1.55;
   color: var(--text-secondary);
 }
+
+/* ── Auth: forgot / reset password ──────────────────────── */
+
+.auth-forgot-link {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.auth-forgot-link a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.auth-forgot-link a:hover {
+  text-decoration: underline;
+}
+
+.auth-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  color: var(--green);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-success p {
+  margin: 0 0 4px;
+}
+
+.auth-success p:last-child {
+  margin: 0;
+}
+
+.auth-success__note {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.auth-error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  color: var(--red);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-error-banner p {
+  margin: 0 0 6px;
+}
+
+.auth-error-banner p:last-child {
+  margin: 0;
+}
+
+.auth-error-banner a {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.auth-field-note {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.auth-success.hidden,
+.auth-error-banner.hidden {
+  display: none;
+}

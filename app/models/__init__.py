@@ -5,6 +5,7 @@ from .db_models import (
     Integration,
     Lead,
     LeadInteraction,
+    PasswordResetToken,
     RefreshTokenJti,
     User,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "Integration",
     "Lead",
     "LeadInteraction",
+    "PasswordResetToken",
     "RefreshTokenJti",
     "User",
 ]
