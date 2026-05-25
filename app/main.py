@@ -305,6 +305,21 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _on_startup() -> None:
+        # --- TEMPORARY DEBUG --- remove after Render startup issue is diagnosed ---
+        import sys as _sys
+        print(f"DEBUG python={_sys.version} platform={_sys.platform}", flush=True)
+        try:
+            import importlib.metadata as _meta
+            _pkgs = ["fastapi", "sqlmodel", "alembic", "passlib", "bcrypt", "pydantic", "psycopg2-binary"]
+            for _pkg in _pkgs:
+                try:
+                    print(f"DEBUG pkg {_pkg}=={_meta.version(_pkg)}", flush=True)
+                except Exception:
+                    print(f"DEBUG pkg {_pkg}==NOT_FOUND", flush=True)
+        except Exception as _e:
+            print(f"DEBUG pkg_check_failed: {_e}", flush=True)
+        # --- END TEMPORARY DEBUG ---
+
         logger.info("startup_step step=configure_structured_logging status=begin")
         try:
             configure_structured_logging()
