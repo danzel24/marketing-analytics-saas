@@ -2341,3 +2341,195 @@ body {
   opacity: 0.92;
   border: 1px dashed var(--border-strong);
 }
+
+/* ── Landing: trust line under CTAs ────────────────────── */
+.landing-trust-line {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* ── Landing: pain points section ──────────────────────── */
+.landing-pain {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.landing-pain__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+}
+
+.landing-pain__icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.landing-pain__text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* ── Onboarding stepper (upload page) ──────────────────── */
+.onboarding-stepper {
+  margin-bottom: 24px;
+  padding: 20px 22px;
+  border-radius: var(--radius);
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.onboarding-stepper__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.onboarding-stepper__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.onboarding-stepper__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  background: rgba(59, 130, 246, 0.12);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.onboarding-stepper__steps {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.onboarding-stepper__step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.onboarding-stepper__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.onboarding-stepper__step.is-active {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: var(--text);
+}
+
+.onboarding-stepper__step.is-active .onboarding-stepper__step-num {
+  background: var(--blue);
+  color: #fff;
+}
+
+.onboarding-stepper__step.is-done {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--green);
+}
+
+.onboarding-stepper__step.is-done .onboarding-stepper__step-num {
+  background: var(--green);
+  color: #fff;
+}
+
+.onboarding-stepper__step.is-done .onboarding-stepper__step-num::after {
+  content: "✓";
+  font-size: 11px;
+}
+
+.onboarding-stepper__step.is-done .onboarding-stepper__step-num {
+  font-size: 0; /* hide number, show checkmark via pseudo */
+}
+
+.onboarding-stepper__content {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.onboarding-stepper__desc {
+  margin: 0 0 12px;
+}
+
+.onboarding-stepper__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ── Onboarding margin hint (dashboard) ────────────────── */
+.onboarding-margin-hint {
+  margin-bottom: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.onboarding-margin-hint__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+}
+
+.onboarding-margin-hint__step {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--blue);
+}
+
+.onboarding-margin-hint__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.onboarding-margin-hint__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}

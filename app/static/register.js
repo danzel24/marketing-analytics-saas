@@ -49,7 +49,7 @@
         return;
       }
       if (data.access_token) window.setToken(data.access_token);
-      window.location.href = "/dashboard";
+      window.location.href = "/upload?onboarding=1";
     } catch (e) {
       err.textContent = String(e.message || e || "Registrace selhala.");
     } finally {

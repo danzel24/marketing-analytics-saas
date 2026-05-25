@@ -63,6 +63,20 @@
       </div>
       <p id="dashboardLoadHint" class="dashboard-load-hint hidden" aria-live="polite">Načítám dashboard…</p>
 
+      <!-- Onboarding krok 3 — zobrazí se jen po přesměrování z upload průvodce -->
+      <div id="onboardingMarginHint" class="onboarding-margin-hint card hidden" role="status" aria-live="polite">
+        <div class="onboarding-margin-hint__inner">
+          <span class="onboarding-margin-hint__step">Krok 3 ze 3</span>
+          <strong class="onboarding-margin-hint__title">Nastav svou marži</strong>
+          <p class="onboarding-margin-hint__text">
+            Vidíš lištu <em>Marže (hrubá)</em> níže? Výchozí hodnota je <strong>40 %</strong>.
+            Uprav ji podle svých produktů — zisk a bod zvratu se přepočítají okamžitě.
+          </p>
+          <button type="button" class="btn btn--secondary btn--small" id="onboardingMarginDismiss">Rozumím, zavřít</button>
+        </div>
+      </div>
+      <!-- /onboarding krok 3 -->
+
       <div id="dashboardEmptyBanner" class="dashboard-empty-banner card hidden" role="status">
         <p class="dashboard-empty-banner__title">Zatím nemáte nahraná data</p>
         <p class="dashboard-empty-banner__text">
@@ -205,5 +219,30 @@
 
       <p class="dashboard-footnote">Přehled počítáme z nahraných dat</p>
     </main>
+
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get("from") !== "onboarding") return;
+        var hint = document.getElementById("onboardingMarginHint");
+        if (!hint) return;
+        hint.classList.remove("hidden");
+        // Scroll to margin bar after a short delay so dashboard loads first
+        setTimeout(function () {
+          var marginBar = document.querySelector(".margin-bar");
+          if (marginBar) marginBar.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 1200);
+        var dismissBtn = document.getElementById("onboardingMarginDismiss");
+        if (dismissBtn) {
+          dismissBtn.addEventListener("click", function () {
+            hint.classList.add("hidden");
+            // Clean up URL without reload
+            var url = new URL(window.location.href);
+            url.searchParams.delete("from");
+            window.history.replaceState({}, "", url.toString());
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

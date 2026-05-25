@@ -32,6 +32,57 @@
 
     <main class="auth-main">
       <div class="card login-card auth-card auth-card--wide">
+
+        <!-- Onboarding stepper — zobrazí se pouze po registraci (?onboarding=1) -->
+        <div id="onboardingStepper" class="onboarding-stepper hidden" aria-label="Průvodce nastavením">
+          <div class="onboarding-stepper__header">
+            <span class="onboarding-stepper__title">Nastavení účtu</span>
+            <span id="stepperLabel" class="onboarding-stepper__label">Krok 1 ze 3</span>
+          </div>
+          <ol class="onboarding-stepper__steps" aria-label="Kroky průvodce">
+            <li class="onboarding-stepper__step is-active" id="stepIndicator1" data-step="1">
+              <span class="onboarding-stepper__step-num">1</span>
+              <span class="onboarding-stepper__step-text">Připrav soubor</span>
+            </li>
+            <li class="onboarding-stepper__step" id="stepIndicator2" data-step="2">
+              <span class="onboarding-stepper__step-num">2</span>
+              <span class="onboarding-stepper__step-text">Nahraj CSV</span>
+            </li>
+            <li class="onboarding-stepper__step" id="stepIndicator3" data-step="3">
+              <span class="onboarding-stepper__step-num">3</span>
+              <span class="onboarding-stepper__step-text">Nastav marži</span>
+            </li>
+          </ol>
+
+          <div id="stepContent1" class="onboarding-stepper__content">
+            <p class="onboarding-stepper__desc">
+              Stáhni ukázkový CSV nebo připrav svůj soubor. Každý řádek musí mít:
+              <code>date, campaign, revenue, spend</code>.
+            </p>
+            <div class="onboarding-stepper__actions">
+              <a class="btn btn--secondary btn--small" href="/static/samples/revenue-sample.csv" download>⬇ Stáhnout ukázkový CSV</a>
+              <button type="button" class="btn btn--primary btn--small" id="stepperNext1">Mám soubor připravený →</button>
+            </div>
+          </div>
+
+          <div id="stepContent2" class="onboarding-stepper__content hidden">
+            <p class="onboarding-stepper__desc">
+              Nahraj CSV soubor pomocí formuláře níže. Doporučujeme nejdřív kliknout na <strong>Náhled</strong> — nic se neuloží.
+            </p>
+          </div>
+
+          <div id="stepContent3" class="onboarding-stepper__content hidden">
+            <p class="onboarding-stepper__desc">
+              🎉 Data jsou nahrána! Teď nastav svou marži na dashboardu.
+            </p>
+            <p class="onboarding-stepper__desc">
+              Výchozí hodnota je <strong>40 %</strong> — zkontroluj, jestli odpovídá tvým produktům. Bez správné marže bude výpočet zisku nepřesný.
+            </p>
+            <a class="btn btn--primary" href="/dashboard?from=onboarding">Přejít na Dashboard a nastavit marži →</a>
+          </div>
+        </div>
+        <!-- /onboarding stepper -->
+
         <h1 class="auth-card__title">Nahrát sjednocený CSV soubor</h1>
         <p class="login-subtitle">
           Nahrajte jeden CSV soubor v UTF-8. Každý řádek má představovat 1 den u 1 kampaně a obsahovat datum, kampaň, tržby a náklady. Nejdříve doporučujeme použít Náhled — nic se neuloží.
@@ -99,5 +150,53 @@
         </div>
       </div>
     </main>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get("onboarding") !== "1") return;
+
+      var stepper = document.getElementById("onboardingStepper");
+      if (!stepper) return;
+      stepper.classList.remove("hidden");
+
+      var currentStep = 1;
+
+      function setStep(n) {
+        currentStep = n;
+        var label = document.getElementById("stepperLabel");
+        if (label) label.textContent = "Krok " + n + " ze 3";
+
+        for (var i = 1; i <= 3; i++) {
+          var ind = document.getElementById("stepIndicator" + i);
+          var cnt = document.getElementById("stepContent" + i);
+          if (ind) {
+            ind.classList.toggle("is-active", i === n);
+            ind.classList.toggle("is-done", i < n);
+          }
+          if (cnt) cnt.classList.toggle("hidden", i !== n);
+        }
+
+        stepper.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      setStep(1);
+
+      var next1 = document.getElementById("stepperNext1");
+      if (next1) {
+        next1.addEventListener("click", function () { setStep(2); });
+      }
+
+      // Advance to step 3 when upload success banner appears
+      var successEl = document.getElementById("uploadSuccess");
+      if (successEl && window.MutationObserver) {
+        var obs = new MutationObserver(function () {
+          if (!successEl.classList.contains("hidden") && currentStep === 2) {
+            setStep(3);
+          }
+        });
+        obs.observe(successEl, { attributes: true, attributeFilter: ["class"] });
+      }
+    })();
+  </script>
   </body>
 </html>
