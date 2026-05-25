@@ -1394,6 +1394,8 @@ class MarketingService:
             "data_reliability": data_reliability,
             "data_reliability_label_cs": data_reliability_label_cs,
             "data_coverage_days": distinct_data_days,
+            "pno": round((total_spend / total_revenue * 100) if total_revenue > 0 else 0.0, 2),
+            "breakeven_pno": round(margin * 100, 2),
         }
         return out
 

@@ -137,9 +137,14 @@
           <div id="kpiRoas" class="kpi__value">—</div>
           <div id="kpiRoasMeta" class="kpi__meta"></div>
         </div>
-        <div class="card kpi">
-          <div class="kpi__label">Bod zvratu (ROAS) <span class="tooltip" data-tip="Nejnižší ROAS, kde je příspěvek po marži v nule: 1 ÷ marže (viz „Použitá marže“).">?</span></div>
-          <div id="kpiBreakEvenRoas" class="kpi__value">—</div>
+        <div class=”card kpi”>
+          <div class=”kpi__label”>Bod zvratu (ROAS) <span class=”tooltip” data-tip=”Nejnižší ROAS, kde je příspěvek po marži v nule: 1 ÷ marže (viz „Použitá marže”).”>?</span></div>
+          <div id=”kpiBreakEvenRoas” class=”kpi__value”>—</div>
+        </div>
+        <div class=”card kpi”>
+          <div class=”kpi__label”>PNO <span class=”tooltip” data-tip=”Podíl nákladů na obratu: náklady ÷ tržby × 100 %. Nižší je lepší — bod zvratu = marže × 100 %.”>?</span></div>
+          <div id=”kpiPno” class=”kpi__value”>—</div>
+          <div id=”kpiPnoMeta” class=”kpi__helper”></div>
         </div>
       </section>
       <div id="kpiPeriodComparison" class="kpi-period-comparison-wrap hidden" aria-live="polite"></div>
@@ -213,6 +218,15 @@
           </div>
           <div class="panel__body">
             <canvas id="profitChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card panel chart-container">
+          <div class="panel__header">
+            <h2 class="panel__title panel__title--compact">ROAS vývoj <span class="tooltip" data-tip="Denní ROAS s přerušovanou čarou bodu zvratu. Nad čarou = ziskové dny.">?</span></h2>
+          </div>
+          <div class="panel__body">
+            <canvas id="roasChart"></canvas>
           </div>
         </div>
       </section>

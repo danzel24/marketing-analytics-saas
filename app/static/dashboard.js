@@ -17,6 +17,8 @@ const els = {
   kpiLoss: document.getElementById("kpiLoss"),
   kpiLossMeta: document.getElementById("kpiLossMeta"),
   kpiLossCard: document.getElementById("kpiLossCard"),
+  kpiPno: document.getElementById("kpiPno"),
+  kpiPnoMeta: document.getElementById("kpiPnoMeta"),
   headlineBanner: document.getElementById("headlineBanner"),
   headlineText: document.getElementById("headlineText"),
   riskBanner: document.getElementById("riskBanner"),
@@ -42,7 +44,7 @@ const els = {
   marginSaveStatus: document.getElementById("marginSaveStatus"),
 };
 
-let charts = { revenue: null, spend: null, profit: null };
+let charts = { revenue: null, spend: null, profit: null, roas: null };
 let selectedDays = 30;
 
 const chartDefaults = {
@@ -756,6 +758,24 @@ function renderKpis(overview, lossSummary) {
     els.kpiLossMeta.textContent = lossSummary?.message || "Žádné kampaně pod bodem zvratu";
   }
 
+  if (els.kpiPno) {
+    const pnoVal = toFiniteNumber(overview.pno);
+    const bePno = toFiniteNumber(overview.breakeven_pno ?? (Number(overview.margin ?? overview.margin_used) * 100));
+    els.kpiPno.classList.remove("roas-high", "roas-medium", "roas-low");
+    if (pnoVal > 0 && bePno > 0) {
+      if (pnoVal < bePno) {
+        els.kpiPno.classList.add("roas-high");
+        if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = `Bod zvratu: ${bePno.toFixed(1)} % — v zisku`;
+      } else {
+        els.kpiPno.classList.add("roas-low");
+        if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = `Bod zvratu: ${bePno.toFixed(1)} % — nad bodem zvratu`;
+      }
+    } else {
+      if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = bePno > 0 ? `Bod zvratu: ${bePno.toFixed(1)} %` : "";
+    }
+    els.kpiPno.textContent = pnoVal > 0 ? `${pnoVal.toFixed(1)} %` : "—";
+  }
+
   const trustEl = els.kpiTrustMicrocopy || document.getElementById("kpiTrustMicrocopy");
   if (trustEl) {
     trustEl.textContent = `Výkon za posledních ${selectedDays} dní podle nahraných dat.`;
@@ -1258,6 +1278,67 @@ function renderCharts(data) {
     options: makeChartOptions((ctx) => `Čistý zisk: ${money(ctx.parsed.y)}`),
   });
 
+  // ── ROAS trend chart with break-even line ────────────────
+  const roasCanvas = document.getElementById("roasChart");
+  const roasTrend = data?.roas_trend ?? {};
+  const roasLabelsRaw = Array.isArray(roasTrend.labels) ? roasTrend.labels : [];
+  const roasValsRaw = Array.isArray(roasTrend.roas) ? roasTrend.roas : [];
+  const roasLen = Math.min(roasLabelsRaw.length, roasValsRaw.length);
+  const roasChartLabels = [];
+  const roasChartValues = [];
+  for (let i = 0; i < roasLen; i++) {
+    roasChartLabels.push(roasLabelsRaw[i] != null ? String(roasLabelsRaw[i]) : "");
+    const n = Number(roasValsRaw[i]);
+    roasChartValues.push(Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null);
+  }
+  const beRoasLine = toFiniteNumber(data?.overview?.break_even_roas ?? 2.5);
+  if (roasCanvas && roasChartLabels.length > 0) {
+    const beLineData = roasChartLabels.map(() => beRoasLine > 0 ? Math.round(beRoasLine * 100) / 100 : null);
+    const roasChartOptions = makeChartOptions((ctx) => {
+      if (ctx.datasetIndex === 1) return `Bod zvratu: ${beRoasLine.toFixed(2)}`;
+      const v = ctx.parsed?.y;
+      return `ROAS: ${v != null ? Number(v).toFixed(2) : "—"}`;
+    });
+    roasChartOptions.scales.y.ticks.callback = (v) => Number(v).toFixed(1);
+    charts.roas = new Chart(roasCanvas, {
+      type: "line",
+      data: {
+        labels: roasChartLabels,
+        datasets: [
+          {
+            label: "ROAS",
+            data: roasChartValues,
+            borderColor: "rgba(59,130,246,0.7)",
+            backgroundColor: "rgba(59,130,246,0.06)",
+            borderWidth: 1.5,
+            pointRadius: linePointRadiusSinglePointOnly,
+            pointHoverRadius: linePointHoverRadiusSinglePointOnly,
+            pointBackgroundColor: linePointBackgroundSinglePointOnly,
+            pointBorderColor: linePointBorderSinglePointOnly,
+            pointBorderWidth: linePointBorderWidthSinglePointOnly,
+            tension: 0.3,
+            fill: false,
+            spanGaps: false,
+          },
+          {
+            label: "Bod zvratu",
+            data: beLineData,
+            borderColor: "rgba(245,158,11,0.75)",
+            backgroundColor: "transparent",
+            borderWidth: 1.5,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            tension: 0,
+            fill: false,
+            spanGaps: true,
+          },
+        ],
+      },
+      options: roasChartOptions,
+    });
+  }
+
   // After toggling ``display:none`` on chart panels (empty state), Chart.js can measure 0×0 once.
   // Double rAF waits for layout; ``resize()`` picks up the real panel dimensions.
   requestAnimationFrame(() => {
@@ -1265,6 +1346,7 @@ function renderCharts(data) {
       charts.revenue?.resize?.();
       charts.spend?.resize?.();
       charts.profit?.resize?.();
+      charts.roas?.resize?.();
     });
   });
 }
@@ -1399,6 +1481,8 @@ function resetDashboardUi() {
   els.kpiLoss.textContent = "—";
   els.kpiLoss.style.color = "";
   els.kpiLossMeta.textContent = "";
+  if (els.kpiPno) { els.kpiPno.textContent = "—"; els.kpiPno.classList.remove("roas-high", "roas-medium", "roas-low"); }
+  if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = "";
   els.insightsList.innerHTML = "";
   if (els.actionBoxToday) els.actionBoxToday.classList.add("hidden");
   if (els.actionBoxTodayList) els.actionBoxTodayList.innerHTML = "";
