@@ -1,14 +1,18 @@
-fastapi
-uvicorn[standard]
-pydantic
-jinja2
-sqlmodel
-psycopg2-binary
-alembic
-PyJWT
-passlib[bcrypt]
+# Pinned to versions running on Render (2026-05-26).
+# Render versions take precedence where they differ from local.
+# Update by running: pip install -r requirements.txt && pip freeze > pip.lock
+
+fastapi==0.136.3
+uvicorn[standard]==0.41.0
+pydantic==2.13.4
+Jinja2==3.1.6
+sqlmodel==0.0.38
+psycopg2-binary==2.9.12
+alembic==1.18.4
+PyJWT==2.12.1
+passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-email-validator
-python-multipart
-tzdata
-pytest
+email-validator==2.3.0
+python-multipart==0.0.22
+tzdata==2026.2
+pytest==9.0.2
