@@ -6,6 +6,7 @@ On multi-worker deployments each process has its own counters — use a shared s
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 import time
@@ -14,6 +15,8 @@ from fastapi.responses import JSONResponse
 
 from app.core.error_response import build_error_payload
 from app.core.request_id import REQUEST_ID_HEADER, TRACE_ID_HEADER, get_request_id, get_trace_id
+
+logger = logging.getLogger(__name__)
 
 _AUTH_PATHS = frozenset(
     {
@@ -27,14 +30,53 @@ _AUTH_PATHS = frozenset(
     }
 )
 _WINDOW_SEC = int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SEC", "60"))
-_MAX_PER_WINDOW = int(os.getenv("AUTH_RATE_LIMIT_MAX", "30"))
+# Default lowered from 30 → 10: 10 auth attempts per 60 s per IP is still
+# generous for legitimate use but stops trivial password-spray attacks.
+_MAX_PER_WINDOW = int(os.getenv("AUTH_RATE_LIMIT_MAX", "10"))
 
 _UPLOAD_PREFIX = "/api/v1/upload/"
 _UPLOAD_WINDOW_SEC = int(os.getenv("UPLOAD_RATE_LIMIT_WINDOW_SEC", str(_WINDOW_SEC)))
-_UPLOAD_MAX_PER_WINDOW = int(os.getenv("UPLOAD_RATE_LIMIT_MAX", str(_MAX_PER_WINDOW)))
+_UPLOAD_MAX_PER_WINDOW = int(os.getenv("UPLOAD_RATE_LIMIT_MAX", "20"))
 
 _buckets: dict[tuple[str, str], list[float]] = {}
 _lock = threading.Lock()
+
+# ── Background cleanup ────────────────────────────────────────────────────────
+# Without cleanup, _buckets grows forever — one entry per unique (IP, path)
+# combination that ever made a request. The daemon thread trims stale entries
+# every 5 minutes so memory stays bounded even after days of traffic.
+
+_CLEANUP_INTERVAL_SEC = 300  # run every 5 minutes
+
+
+def _cleanup_buckets() -> None:
+    """Daemon: periodically remove bucket entries whose timestamps have all expired."""
+    cutoff_window = max(_WINDOW_SEC, _UPLOAD_WINDOW_SEC)
+    while True:
+        time.sleep(_CLEANUP_INTERVAL_SEC)
+        now = time.monotonic()
+        try:
+            with _lock:
+                stale = [
+                    k for k, v in _buckets.items()
+                    if not any(t > now - cutoff_window for t in v)
+                ]
+                for k in stale:
+                    del _buckets[k]
+            if stale:
+                logger.debug("rate_limit cleanup: removed %d stale buckets", len(stale))
+        except Exception:
+            logger.exception("rate_limit cleanup thread error (ignored)")
+
+
+_cleanup_thread = threading.Thread(
+    target=_cleanup_buckets,
+    daemon=True,
+    name="rate-limit-cleanup",
+)
+_cleanup_thread.start()
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 
 def _parse_bool_env(name: str, default: bool = False) -> bool:
@@ -67,6 +109,9 @@ def _rate_limit_json_response(request: Request) -> JSONResponse:
     response.headers[REQUEST_ID_HEADER] = request_id
     response.headers[TRACE_ID_HEADER] = trace_id
     return response
+
+
+# ── Rate limit checks ─────────────────────────────────────────────────────────
 
 
 def auth_rate_limit_response_or_none(request: Request) -> JSONResponse | None:
