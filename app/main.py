@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -44,6 +45,62 @@ from app.services.auth_service import AuthService
 
 logger = logging.getLogger(__name__)
 error_logger = logging.getLogger("app.errors")
+
+# ── Optional Sentry integration ───────────────────────────────────────────────
+# Enabled only when SENTRY_DSN is set — no-op in dev/CI without the env var.
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+    _SENTRY_AVAILABLE = True
+except ImportError:  # pragma: no cover — sentry-sdk not installed
+    _SENTRY_AVAILABLE = False
+
+
+def _before_send_sentry(event: dict, hint: dict) -> dict | None:
+    """Drop expected 4xx client errors — not bugs, just noise in Sentry."""
+    exc_info = hint.get("exc_info")
+    if exc_info:
+        _, exc_value, _ = exc_info
+        if isinstance(exc_value, HTTPException) and exc_value.status_code < 500:
+            return None
+        if isinstance(exc_value, AppError) and exc_value.status_code < 500:
+            return None
+    return event
+
+
+def _init_sentry() -> None:
+    """Initialise Sentry SDK if SENTRY_DSN is configured. No-op otherwise."""
+    if not _SENTRY_AVAILABLE:
+        return
+    dsn = os.getenv("SENTRY_DSN", "").strip()
+    if not dsn:
+        logger.info("sentry_disabled: SENTRY_DSN not set")
+        return
+    env = os.getenv("APP_ENV", "development")
+    # Render injects RENDER_GIT_COMMIT automatically — use it as the release tag.
+    release = os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or None
+    traces_rate = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=env,
+        release=release,
+        traces_sample_rate=traces_rate,
+        send_default_pii=False,  # GDPR: disable automatic PII collection
+        integrations=[
+            StarletteIntegration(transaction_style="endpoint"),
+            FastApiIntegration(transaction_style="endpoint"),
+            SqlalchemyIntegration(),
+            LoggingIntegration(
+                level=logging.INFO,        # INFO+ logged as breadcrumbs
+                event_level=logging.ERROR, # ERROR+ creates a Sentry event
+            ),
+        ],
+        before_send=_before_send_sentry,
+    )
+    logger.info("sentry_enabled env=%s release=%s traces_rate=%s", env, release or "unknown", traces_rate)
 
 
 def _is_api_request(request: Request) -> bool:
@@ -571,4 +628,5 @@ def create_app() -> FastAPI:
     return app
 
 
+_init_sentry()
 app = create_app()
