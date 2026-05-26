@@ -41,8 +41,18 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
     SMTP errors are caught and logged — the caller always gets a clean return
     so the API endpoint can return 200 regardless of mail delivery status.
     """
-    cfg = _smtp_config()
+    print("DEBUG email_service: send_password_reset_email entered", flush=True)
+    try:
+        cfg = _smtp_config()
+    except Exception as _cfg_exc:
+        print(f"DEBUG email_service: _smtp_config() crashed: {_cfg_exc!r}", flush=True)
+        logger.exception("email_service _smtp_config failed")
+        return
+
+    print(f"DEBUG email_service: cfg={'None' if cfg is None else 'host=' + cfg['host']}", flush=True)
+
     if cfg is None:
+        print(f"DEBUG email_service: smtp not configured, link={reset_link}", flush=True)
         logger.info(
             "email_service smtp_not_configured — password reset link (dev only): "
             "to=%s link=%s",
@@ -52,6 +62,7 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
         return
 
     # Log what config is being used (never log the password).
+    print(f"DEBUG email_service: attempting SMTP host={cfg['host']} port={cfg['port']} user={cfg['user'] or '(empty)'}", flush=True)
     logger.info(
         "email_service smtp_attempt host=%s port=%s user=%s from_addr=%s to=%s",
         cfg["host"],
@@ -93,13 +104,15 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
             if cfg["user"] and cfg["password"]:
                 server.login(cfg["user"], cfg["password"])
             server.sendmail(cfg["from_addr"], [to_email], msg.as_string())
+        print(f"DEBUG email_service: smtp_sent host={cfg['host']}", flush=True)
         logger.info(
             "email_service smtp_sent host=%s from=%s to=%s",
             cfg["host"],
             cfg["from_addr"],
             to_email,
         )
-    except smtplib.SMTPAuthenticationError:
+    except smtplib.SMTPAuthenticationError as exc:
+        print(f"DEBUG email_service: smtp_auth_failed {exc!r}", flush=True)
         logger.error(
             "email_service smtp_auth_failed host=%s port=%s user=%s — "
             "check SMTP_USER and SMTP_PASSWORD on Render",
@@ -108,7 +121,8 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
             cfg["user"] or "(empty)",
             exc_info=True,
         )
-    except smtplib.SMTPConnectError:
+    except smtplib.SMTPConnectError as exc:
+        print(f"DEBUG email_service: smtp_connect_failed {exc!r}", flush=True)
         logger.error(
             "email_service smtp_connect_failed host=%s port=%s — "
             "check SMTP_HOST and SMTP_PORT on Render",
@@ -117,13 +131,15 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
             exc_info=True,
         )
     except smtplib.SMTPRecipientsRefused as exc:
+        print(f"DEBUG email_service: smtp_recipient_refused {exc!r}", flush=True)
         logger.error(
             "email_service smtp_recipient_refused to=%s recipients=%s",
             to_email,
             exc.recipients,
             exc_info=True,
         )
-    except Exception:
+    except Exception as exc:
+        print(f"DEBUG email_service: smtp_error {type(exc).__name__}: {exc!r}", flush=True)
         logger.exception(
             "email_service smtp_error host=%s port=%s from=%s to=%s",
             cfg["host"],
