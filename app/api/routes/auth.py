@@ -172,6 +172,8 @@ def reset_password(
     user.token_version = int(getattr(user, "token_version", 1) or 1) + 1
     session.add(user)
     reset_repo.mark_used(session, token_row=token_row)
+    # Single commit — password change + token invalidation are atomic.
+    # If this fails, neither the password nor the token state changes.
     session.commit()
     logger.info("reset_password success user_id=%s", user.id)
     return {"status": "ok", "message": "Heslo bylo úspěšně změněno."}

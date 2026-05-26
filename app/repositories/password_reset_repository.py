@@ -47,6 +47,6 @@ class PasswordResetRepository:
         return row
 
     def mark_used(self, session: Session, *, token_row: PasswordResetToken) -> None:
+        """Stage token_row.used = True. Caller is responsible for session.commit()."""
         token_row.used = True
         session.add(token_row)
-        session.commit()
