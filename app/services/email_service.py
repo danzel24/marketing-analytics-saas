@@ -51,6 +51,16 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
         )
         return
 
+    # Log what config is being used (never log the password).
+    logger.info(
+        "email_service smtp_attempt host=%s port=%s user=%s from_addr=%s to=%s",
+        cfg["host"],
+        cfg["port"],
+        cfg["user"] or "(empty)",
+        cfg["from_addr"],
+        to_email,
+    )
+
     subject = "Obnovení hesla — Marketingový přehled"
     body_text = (
         "Dobrý den,\n\n"
@@ -83,7 +93,42 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
             if cfg["user"] and cfg["password"]:
                 server.login(cfg["user"], cfg["password"])
             server.sendmail(cfg["from_addr"], [to_email], msg.as_string())
-        logger.info("email_service sent password_reset to=%s", to_email)
+        logger.info(
+            "email_service smtp_sent host=%s from=%s to=%s",
+            cfg["host"],
+            cfg["from_addr"],
+            to_email,
+        )
+    except smtplib.SMTPAuthenticationError:
+        logger.error(
+            "email_service smtp_auth_failed host=%s port=%s user=%s — "
+            "check SMTP_USER and SMTP_PASSWORD on Render",
+            cfg["host"],
+            cfg["port"],
+            cfg["user"] or "(empty)",
+            exc_info=True,
+        )
+    except smtplib.SMTPConnectError:
+        logger.error(
+            "email_service smtp_connect_failed host=%s port=%s — "
+            "check SMTP_HOST and SMTP_PORT on Render",
+            cfg["host"],
+            cfg["port"],
+            exc_info=True,
+        )
+    except smtplib.SMTPRecipientsRefused as exc:
+        logger.error(
+            "email_service smtp_recipient_refused to=%s recipients=%s",
+            to_email,
+            exc.recipients,
+            exc_info=True,
+        )
     except Exception:
-        logger.exception("email_service failed to send password_reset to=%s", to_email)
-        # Do not re-raise — endpoint always returns 200 to avoid email enumeration
+        logger.exception(
+            "email_service smtp_error host=%s port=%s from=%s to=%s",
+            cfg["host"],
+            cfg["port"],
+            cfg["from_addr"],
+            to_email,
+        )
+    # Do not re-raise — endpoint always returns 200 to avoid email enumeration

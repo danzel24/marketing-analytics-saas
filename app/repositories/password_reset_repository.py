@@ -52,6 +52,16 @@ class PasswordResetRepository:
         token_row.used = True
         session.add(token_row)
 
+    def delete_pending_for_user(self, session: Session, *, user_id: int) -> int:
+        """Delete all unused (pending) tokens for a user before issuing a new one."""
+        stmt = delete(PasswordResetToken).where(
+            PasswordResetToken.user_id == user_id,
+            PasswordResetToken.used == False,  # noqa: E712
+        )
+        result = session.exec(stmt)
+        session.commit()
+        return int(result.rowcount or 0)
+
     def delete_expired(self, session: Session) -> int:
         """Delete tokens that are expired or already used. Returns count deleted."""
         now = datetime.now(tz=timezone.utc)

@@ -46,8 +46,18 @@ def _is_sqlite_url(url: str) -> bool:
 def _engine_kwargs(url: str) -> dict:
     if _is_sqlite_url(url):
         return {"connect_args": {"check_same_thread": False}}
-    # PostgreSQL and other servers: avoid stale connections after idle timeouts.
-    return {"pool_pre_ping": True}
+    # PostgreSQL: avoid stale connections + cap pool size for Neon serverless free tier
+    # (Neon free tier allows ~10 concurrent connections; default pool_size=5 + max_overflow=10
+    # would exceed that under moderate load).
+    pool_size = int(os.getenv("DB_POOL_SIZE", "3"))
+    max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "2"))
+    return {
+        "pool_pre_ping": True,
+        "pool_size": pool_size,
+        "max_overflow": max_overflow,
+        "pool_timeout": 30,
+        "pool_recycle": 1800,  # Recycle before Neon/PgBouncer kills idle connections
+    }
 
 
 engine = create_engine(DATABASE_URL, **_engine_kwargs(DATABASE_URL))
