@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import secrets
+import time
 from datetime import timedelta
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response
 from sqlmodel import Session
 
 from app.core.auth_cookies import clear_refresh_cookie, set_refresh_cookie
@@ -134,40 +135,57 @@ def get_me(
     }
 
 
+# Minimum response time for forgot-password — both the "email found" and
+# "email not found" paths are padded to this duration so an attacker cannot
+# infer whether an address is registered by measuring response latency.
+_FORGOT_PASSWORD_MIN_SECS = 0.5
+
+
 @router.post("/api/v1/auth/forgot-password")
 def forgot_password(
     body: ForgotPasswordIn,
     request: Request,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
 ) -> dict[str, str]:
     """Request a password reset link.
 
-    Always returns 200 regardless of whether the email exists (prevents enumeration).
+    Always returns 200 with the same body regardless of whether the email
+    exists (prevents enumeration). Response is padded to a constant minimum
+    time to prevent timing-based enumeration attacks.
+    Email is sent as a background task so its latency doesn't leak either.
     """
+    t0 = time.monotonic()
     _SUCCESS = {
         "status": "ok",
         "message": "Pokud email existuje, přijde vám zpráva s odkazem pro obnovení hesla.",
     }
     user_repo = UserRepository()
     user = user_repo.get_by_email_unscoped_internal(session, str(body.email), _internal_call=True)
-    if user is None or user.id is None:
-        return _SUCCESS
+    if user is not None and user.id is not None:
+        reset_repo = PasswordResetRepository()
+        # Invalidate any pending (unused, unexpired) tokens before issuing a new one.
+        reset_repo.delete_pending_for_user(session, user_id=user.id)
 
-    reset_repo = PasswordResetRepository()
-    # Invalidate any pending (unused, unexpired) tokens before issuing a new one.
-    # Prevents token proliferation if the user clicks "Forgot password" multiple times.
-    reset_repo.delete_pending_for_user(session, user_id=user.id)
+        token = secrets.token_hex(32)  # 64-char hex
+        expires_at = utcnow() + timedelta(hours=1)
+        reset_repo.create_token(
+            session, user_id=user.id, token=token, expires_at=expires_at
+        )
 
-    token = secrets.token_hex(32)  # 64-char hex
-    expires_at = utcnow() + timedelta(hours=1)
-    reset_repo.create_token(
-        session, user_id=user.id, token=token, expires_at=expires_at
-    )
+        base = str(request.base_url).rstrip("/")
+        reset_link = f"{base}/reset-password?token={token}"
+        # Send in background — email API latency must not leak whether user exists.
+        background_tasks.add_task(
+            send_password_reset_email, to_email=str(body.email), reset_link=reset_link
+        )
+        logger.info("forgot_password token_issued user_id=%s", user.id)
 
-    base = str(request.base_url).rstrip("/")
-    reset_link = f"{base}/reset-password?token={token}"
-    send_password_reset_email(to_email=str(body.email), reset_link=reset_link)
-    logger.info("forgot_password token_issued user_id=%s", user.id)
+    # Pad both branches to the same minimum response time.
+    elapsed = time.monotonic() - t0
+    if elapsed < _FORGOT_PASSWORD_MIN_SECS:
+        time.sleep(_FORGOT_PASSWORD_MIN_SECS - elapsed)
+
     return _SUCCESS
 
 
