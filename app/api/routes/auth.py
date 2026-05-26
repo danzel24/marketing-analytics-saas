@@ -128,6 +128,9 @@ def forgot_password(
 
     Always returns 200 regardless of whether the email exists (prevents enumeration).
     """
+    print("DEBUG forgot_password called", flush=True)
+    logger.info("forgot_password called email_domain=%s", str(body.email).split("@")[-1])
+
     _SUCCESS = {
         "status": "ok",
         "message": "Pokud email existuje, přijde vám zpráva s odkazem pro obnovení hesla.",
@@ -135,6 +138,9 @@ def forgot_password(
     user_repo = UserRepository()
     user = user_repo.get_by_email_unscoped_internal(session, str(body.email), _internal_call=True)
     if user is None or user.id is None:
+        # Email not in DB — anti-enumeration: still return 200, but log for diagnostics.
+        logger.warning("forgot_password user_not_found email_domain=%s", str(body.email).split("@")[-1])
+        print("DEBUG forgot_password user_not_found", flush=True)
         return _SUCCESS
 
     reset_repo = PasswordResetRepository()
@@ -150,6 +156,8 @@ def forgot_password(
 
     base = str(request.base_url).rstrip("/")
     reset_link = f"{base}/reset-password?token={token}"
+    logger.info("forgot_password sending_email user_id=%s", user.id)
+    print(f"DEBUG forgot_password sending email user_id={user.id}", flush=True)
     send_password_reset_email(to_email=str(body.email), reset_link=reset_link)
     logger.info("forgot_password token_issued user_id=%s", user.id)
     return _SUCCESS
