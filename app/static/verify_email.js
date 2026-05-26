@@ -1,45 +1,56 @@
 (function () {
-  const loading = document.getElementById("verifyLoading");
-  const success = document.getElementById("verifySuccess");
-  const errorBox = document.getElementById("verifyError");
-  const errorText = document.getElementById("verifyErrorText");
+  "use strict";
 
-  function show(el) {
-    [loading, success, errorBox].forEach((e) => {
-      if (e) e.classList.toggle("hidden", e !== el);
-    });
+  var loadingEl = document.getElementById("verifyLoading");
+  var successEl = document.getElementById("verifySuccess");
+  var errorEl = document.getElementById("verifyError");
+  var errorMsgEl = document.getElementById("verifyErrorMsg");
+
+  function showError(msg) {
+    if (loadingEl) loadingEl.classList.add("hidden");
+    if (successEl) successEl.classList.add("hidden");
+    if (errorEl) errorEl.classList.remove("hidden");
+    if (errorMsgEl && msg) errorMsgEl.textContent = msg;
   }
 
-  async function verify() {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    if (!token) {
-      if (errorText) errorText.textContent = "Chybí ověřovací token v odkazu.";
-      show(errorBox);
-      return;
-    }
+  function showSuccess() {
+    if (loadingEl) loadingEl.classList.add("hidden");
+    if (errorEl) errorEl.classList.add("hidden");
+    if (successEl) successEl.classList.remove("hidden");
+    setTimeout(function () {
+      window.location.href = "/login";
+    }, 2500);
+  }
 
-    try {
-      const res = await fetch("/api/v1/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get("token");
+
+  if (!token) {
+    showError("Chybí ověřovací token. Zkontrolujte odkaz v e-mailu.");
+    return;
+  }
+
+  fetch("/api/v1/auth/verify-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: token }),
+  })
+    .then(function (res) {
+      return res.json().then(function (data) {
+        return { ok: res.ok, data: data };
       });
-      if (res.ok) {
-        show(success);
+    })
+    .then(function (result) {
+      if (result.ok) {
+        showSuccess();
       } else {
-        const data = await res.json().catch(() => ({}));
-        if (errorText)
-          errorText.textContent =
-            (data && data.error && data.error.message) ||
-            "Odkaz pro ověření je neplatný nebo vypršel.";
-        show(errorBox);
+        var msg =
+          (result.data && result.data.error && result.data.error.message) ||
+          "Odkaz pro ověření je neplatný nebo vypršel.";
+        showError(msg);
       }
-    } catch (e) {
-      if (errorText) errorText.textContent = String(e.message || e || "Chyba při ověřování.");
-      show(errorBox);
-    }
-  }
-
-  verify();
+    })
+    .catch(function () {
+      showError("Nepodařilo se ověřit e-mail. Zkuste to prosím znovu.");
+    });
 })();

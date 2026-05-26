@@ -37,6 +37,10 @@
     </header>
 
     <main id="dashboardSection" class="container">
+      <div id="verifyEmailBanner" class="verify-banner hidden" role="alert">
+        <span class="verify-banner__text">⚠ Váš email není ověřen. Zkontrolujte doručenou poštu nebo si nechte zaslat nový odkaz.</span>
+        <button id="resendVerifyBtn" type="button" class="verify-banner__btn">Odeslat znovu</button>
+      </div>
       <div class="filter-bar">
         <span class="filter-bar__label">Období:</span>
         <button type="button" class="filter-btn" data-days="7">7 dní</button>

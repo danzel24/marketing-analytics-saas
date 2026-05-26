@@ -30,14 +30,14 @@ class EmailVerificationRepository:
         *,
         token: str,
     ) -> Optional[EmailVerificationToken]:
-        """Return token row only if it exists, unused, and not expired."""
+        """Return token row only if it exists, has not been used, and has not expired."""
         now = datetime.now(tz=timezone.utc)
         row = session.exec(
-            select(EmailVerificationToken).where(
-                EmailVerificationToken.token == token
-            )
+            select(EmailVerificationToken).where(EmailVerificationToken.token == token)
         ).first()
-        if row is None or row.used:
+        if row is None:
+            return None
+        if row.used:
             return None
         exp = row.expires_at
         if exp.tzinfo is None:
@@ -47,12 +47,12 @@ class EmailVerificationRepository:
         return row
 
     def mark_used(self, session: Session, *, token_row: EmailVerificationToken) -> None:
-        """Stage token_row.used = True. Caller commits."""
+        """Stage token_row.used = True. Caller is responsible for session.commit()."""
         token_row.used = True
         session.add(token_row)
 
     def delete_pending_for_user(self, session: Session, *, user_id: int) -> int:
-        """Delete unused tokens for a user before issuing a new one."""
+        """Delete all unused (pending) tokens for a user before issuing a new one."""
         stmt = delete(EmailVerificationToken).where(
             EmailVerificationToken.user_id == user_id,
             EmailVerificationToken.used == False,  # noqa: E712
