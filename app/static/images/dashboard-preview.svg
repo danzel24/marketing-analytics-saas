@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="#F5F5F7"/>
+
+  <!-- Topbar -->
+  <rect width="1200" height="52" fill="rgba(255,255,255,0.92)"/>
+  <rect width="1200" height="1" y="51" fill="#E5E5EA"/>
+  <!-- MA logo -->
+  <rect x="24" y="10" width="32" height="32" rx="8" fill="#0071E3"/>
+  <text x="40" y="31" font-size="12" font-weight="700" fill="white" text-anchor="middle">MA</text>
+  <!-- Brand text -->
+  <text x="66" y="28" font-size="14" font-weight="600" fill="#1D1D1F">Marketingový přehled</text>
+  <text x="66" y="42" font-size="11" fill="#6E6E73">Přehled výkonu marketingu a ziskovosti</text>
+  <!-- Nav links -->
+  <text x="850" y="30" font-size="13" fill="#6E6E73">Nahrát CSV</text>
+  <text x="940" y="30" font-size="13" fill="#6E6E73">Oddělené CSV</text>
+  <text x="1040" y="30" font-size="13" fill="#6E6E73">Přehled kanálů</text>
+  <!-- Logout button -->
+  <rect x="1130" y="14" width="50" height="24" rx="12" fill="white" stroke="#D1D1D6" stroke-width="1"/>
+  <text x="1155" y="30" font-size="11" fill="#1D1D1F" text-anchor="middle">Odhlásit</text>
+
+  <!-- Filter bar -->
+  <text x="24" y="88" font-size="13" fill="#6E6E73" font-weight="500">Období:</text>
+  <rect x="78" y="72" width="52" height="26" rx="13" fill="white" stroke="#D1D1D6" stroke-width="1"/>
+  <text x="104" y="89" font-size="12" fill="#6E6E73" text-anchor="middle">7 dní</text>
+  <rect x="138" y="72" width="56" height="26" rx="13" fill="#0071E3"/>
+  <text x="166" y="89" font-size="12" fill="white" text-anchor="middle">30 dní</text>
+  <rect x="202" y="72" width="56" height="26" rx="13" fill="white" stroke="#D1D1D6" stroke-width="1"/>
+  <text x="230" y="89" font-size="12" fill="#6E6E73" text-anchor="middle">90 dní</text>
+
+  <!-- Margin bar -->
+  <text x="24" y="128" font-size="13" fill="#6E6E73" font-weight="500">Marže (hrubá):</text>
+  <rect x="138" y="112" width="52" height="26" rx="8" fill="white" stroke="#D1D1D6" stroke-width="1"/>
+  <text x="164" y="129" font-size="13" fill="#1D1D1F" text-anchor="middle">40</text>
+  <text x="196" y="128" font-size="13" fill="#6E6E73">%</text>
+  <rect x="212" y="112" width="52" height="26" rx="13" fill="white" stroke="#D1D1D6" stroke-width="1"/>
+  <text x="238" y="129" font-size="12" fill="#1D1D1F" text-anchor="middle">Použít</text>
+
+  <!-- KPI GRID — row 1: 3 cards -->
+  <!-- Card: Tržby -->
+  <rect x="24" y="156" width="370" height="100" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="44" y="180" font-size="11" fill="#6E6E73" font-weight="500" letter-spacing="0.5">TRŽBY</text>
+  <text x="44" y="222" font-size="28" font-weight="700" fill="#1D1D1F">533 346 Kč</text>
+
+  <!-- Card: Náklady -->
+  <rect x="414" y="156" width="370" height="100" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="434" y="180" font-size="11" fill="#6E6E73" font-weight="500" letter-spacing="0.5">NÁKLADY NA REKLAMU</text>
+  <text x="434" y="222" font-size="28" font-weight="700" fill="#1D1D1F">116 491 Kč</text>
+
+  <!-- Card: Zisk (hero) -->
+  <rect x="804" y="156" width="370" height="100" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="824" y="176" font-size="11" fill="#6E6E73" font-weight="500" letter-spacing="0.5">ZISK (PO MARŽI 40 %)</text>
+  <text x="824" y="197" font-size="11" fill="#1C7C3A" font-weight="700" letter-spacing="1">▲ VYDĚLÁVATE</text>
+  <text x="824" y="235" font-size="32" font-weight="800" fill="#1C7C3A">+96 847 Kč</text>
+
+  <!-- KPI GRID — row 2: 3 cards -->
+  <!-- Card: Ztráta -->
+  <rect x="24" y="272" width="370" height="90" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="44" y="295" font-size="11" fill="#6E6E73" font-weight="500" letter-spacing="0.5">ZTRÁTA Z NEEFEKTIVNÍCH KAMPANÍ</text>
+  <text x="44" y="336" font-size="26" font-weight="700" fill="#C70015">-12 340 Kč</text>
+
+  <!-- Card: ROAS -->
+  <rect x="414" y="272" width="370" height="90" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="434" y="295" font-size="11" fill="#6E6E73" font-weight="500" letter-spacing="0.5">PRŮMĚRNÉ ROAS</text>
+  <text x="434" y="336" font-size="26" font-weight="700" fill="#1D1D1F">4,58×</text>
+  <rect x="490" y="318" width="68" height="20" rx="10" fill="#E8F5EE"/>
+  <text x="524" y="331" font-size="10" fill="#1C7C3A" font-weight="600" text-anchor="middle">ZISKOVÉ</text>
+
+  <!-- Card: Bod zvratu -->
+  <rect x="804" y="272" width="370" height="90" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <text x="824" y="295" font-size="11" fill="#6E6E73" font-weight="500" letter-spacing="0.5">BOD ZVRATU (ROAS)</text>
+  <text x="824" y="336" font-size="26" font-weight="700" fill="#1D1D1F">2,50×</text>
+
+  <!-- Campaign table card -->
+  <rect x="24" y="382" width="1150" height="310" rx="14" fill="white" stroke="#E5E5EA" stroke-width="1"/>
+  <!-- Table header row -->
+  <rect x="24" y="382" width="1150" height="42" rx="14" fill="#FAFAFA"/>
+  <rect x="24" y="408" width="1150" height="16" fill="#FAFAFA"/>
+  <rect x="24" y="423" width="1150" height="1" fill="#E5E5EA"/>
+  <text x="44" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">KAMPAŇ</text>
+  <text x="300" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">NÁKLADY</text>
+  <text x="430" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">TRŽBY</text>
+  <text x="560" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">ČISTÝ ZISK</text>
+  <text x="700" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">ROAS</text>
+  <text x="800" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">STATUS</text>
+  <text x="940" y="408" font-size="11" fill="#6E6E73" font-weight="600" letter-spacing="0.5">DOPORUČENÍ</text>
+
+  <!-- Row 1 -->
+  <rect x="24" y="424" width="1150" height="1" fill="#E5E5EA"/>
+  <text x="44" y="452" font-size="13" fill="#1D1D1F" font-weight="500">Brand Search</text>
+  <text x="300" y="452" font-size="13" fill="#1D1D1F">28 400 Kč</text>
+  <text x="430" y="452" font-size="13" fill="#1D1D1F">198 200 Kč</text>
+  <text x="560" y="452" font-size="13" fill="#1C7C3A" font-weight="700">+50 880 Kč</text>
+  <text x="700" y="452" font-size="13" fill="#1C7C3A" font-weight="700">6,98×</text>
+  <rect x="795" y="437" width="68" height="22" rx="11" fill="#E8F5EE"/>
+  <text x="829" y="452" font-size="11" fill="#1C7C3A" font-weight="600" text-anchor="middle">ZISKOVÉ</text>
+  <text x="940" y="452" font-size="12" fill="#6E6E73">Škálovat rozpočet ↑</text>
+
+  <!-- Row 2 -->
+  <rect x="24" y="468" width="1150" height="1" fill="#E5E5EA"/>
+  <text x="44" y="496" font-size="13" fill="#1D1D1F" font-weight="500">Performance Max – Košíky</text>
+  <text x="300" y="496" font-size="13" fill="#1D1D1F">45 200 Kč</text>
+  <text x="430" y="496" font-size="13" fill="#1D1D1F">167 800 Kč</text>
+  <text x="560" y="496" font-size="13" fill="#1C7C3A" font-weight="700">+21 920 Kč</text>
+  <text x="700" y="496" font-size="13" fill="#1C7C3A" font-weight="700">3,71×</text>
+  <rect x="795" y="481" width="68" height="22" rx="11" fill="#E8F5EE"/>
+  <text x="829" y="496" font-size="11" fill="#1C7C3A" font-weight="600" text-anchor="middle">ZISKOVÉ</text>
+  <text x="940" y="496" font-size="12" fill="#6E6E73">Testovat opatrně</text>
+
+  <!-- Row 3 -->
+  <rect x="24" y="512" width="1150" height="1" fill="#E5E5EA"/>
+  <text x="44" y="540" font-size="13" fill="#1D1D1F" font-weight="500">Meta Ads – Retargeting</text>
+  <text x="300" y="540" font-size="13" fill="#1D1D1F">22 800 Kč</text>
+  <text x="430" y="540" font-size="13" fill="#1D1D1F">48 400 Kč</text>
+  <text x="560" y="540" font-size="13" fill="#9A6100" font-weight="700">+690 Kč</text>
+  <text x="700" y="540" font-size="13" fill="#9A6100" font-weight="700">2,12×</text>
+  <rect x="795" y="525" width="84" height="22" rx="11" fill="#FFF4E0"/>
+  <text x="837" y="540" font-size="11" fill="#9A6100" font-weight="600" text-anchor="middle">NA HRANĚ</text>
+  <text x="940" y="540" font-size="12" fill="#6E6E73">Optimalizovat cílení</text>
+
+  <!-- Row 4 -->
+  <rect x="24" y="556" width="1150" height="1" fill="#E5E5EA"/>
+  <text x="44" y="584" font-size="13" fill="#1D1D1F" font-weight="500">Display – Nové publikum</text>
+  <text x="300" y="584" font-size="13" fill="#1D1D1F">20 091 Kč</text>
+  <text x="430" y="584" font-size="13" fill="#1D1D1F">18 946 Kč</text>
+  <text x="560" y="584" font-size="13" fill="#C70015" font-weight="700">-12 340 Kč</text>
+  <text x="700" y="584" font-size="13" fill="#C70015" font-weight="700">0,94×</text>
+  <rect x="795" y="569" width="68" height="22" rx="11" fill="#FFF0F0"/>
+  <text x="829" y="584" font-size="11" fill="#C70015" font-weight="600" text-anchor="middle">ZTRÁTOVÉ</text>
+  <text x="940" y="584" font-size="12" fill="#6E6E73">Pozastavit kampaň</text>
+
+  <!-- Row 5 -->
+  <rect x="24" y="600" width="1150" height="1" fill="#E5E5EA"/>
+  <text x="44" y="628" font-size="13" fill="#1D1D1F" font-weight="500">Google Shopping – Outlet</text>
+  <text x="300" y="628" font-size="13" fill="#1D1D1F">36 001 Kč</text>
+  <text x="430" y="628" font-size="13" fill="#1D1D1F">100 000 Kč</text>
+  <text x="560" y="628" font-size="13" fill="#1C7C3A" font-weight="700">+3 999 Kč</text>
+  <text x="700" y="628" font-size="13" fill="#1C7C3A" font-weight="700">2,78×</text>
+  <rect x="795" y="613" width="68" height="22" rx="11" fill="#E8F5EE"/>
+  <text x="829" y="628" font-size="11" fill="#1C7C3A" font-weight="600" text-anchor="middle">ZISKOVÉ</text>
+  <text x="940" y="628" font-size="12" fill="#6E6E73">Udržet stávající bid</text>
+</svg>
