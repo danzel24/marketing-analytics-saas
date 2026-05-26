@@ -16,6 +16,7 @@ from app.core.security import (
     REFRESH_TOKEN_SHORT_EXPIRES_SECONDS,
     decode_refresh_token,
     hash_password,
+    verify_password,
 )
 from app.database import get_session
 from app.models.db_models import User, utcnow
@@ -23,7 +24,7 @@ from app.repositories.client_repository import ClientRepository
 from app.repositories.email_verification_repository import EmailVerificationRepository
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut, VerifyEmailIn
+from app.schemas.auth import ChangePasswordIn, ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut, VerifyEmailIn
 from app.services.auth_service import AuthService
 from app.services.email_service import send_password_reset_email, send_verification_email
 from app.services.marketing_service import MarketingService
@@ -265,3 +266,46 @@ def resend_verification(
     send_verification_email(to_email=current_user.email, verify_link=verify_link)
     logger.info("resend_verification sent user_id=%s", current_user.id)
     return {"status": "ok", "message": "Ověřovací email byl odeslán."}
+
+
+@router.post("/api/v1/auth/change-password")
+def change_password(
+    body: ChangePasswordIn,
+    response: Response,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Change password for the currently authenticated user.
+
+    Verifies the current password, updates the hash, bumps token_version to
+    invalidate all other sessions, then issues fresh tokens so the caller
+    stays logged in without interruption.
+    """
+    if not verify_password(body.current_password, str(current_user.password_hash)):
+        raise ValidationError("Současné heslo je nesprávné.")
+
+    if verify_password(body.new_password, str(current_user.password_hash)):
+        raise ValidationError("Nové heslo musí být jiné než současné.")
+
+    current_user.password_hash = hash_password(body.new_password)
+    # Bump token_version — invalidates all refresh tokens issued before this moment
+    # (other browsers / devices get logged out; current session is re-issued below).
+    current_user.token_version = int(getattr(current_user, "token_version", 1) or 1) + 1
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
+    # Issue fresh tokens with the new token_version so the caller stays logged in.
+    tokens = AuthService().issue_tokens_for_user(
+        current_user,
+        refresh_expires_in_seconds=REFRESH_TOKEN_EXPIRES_SECONDS,
+    )
+    set_refresh_cookie(response, tokens["refresh_token"], REFRESH_TOKEN_EXPIRES_SECONDS)
+    response.headers["x-access-token"] = tokens["access_token"]
+
+    logger.info("change_password success user_id=%s", current_user.id)
+    return {
+        "status": "ok",
+        "message": "Heslo bylo úspěšně změněno.",
+        "access_token": tokens["access_token"],
+    }

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nastavení účtu — Marketingový přehled</title>
+    <link rel="stylesheet" href="/static/styles.css?v=2" />
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/account.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__left">
+        <a href="/dashboard" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Nastavení účtu</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav" aria-label="Hlavní menu">
+        <a class="topbar__nav-link" href="/dashboard">Dashboard</a>
+        {% include "_feedback_nav_link.html" %}
+      </nav>
+      <div class="topbar__right">
+        <button id="logoutBtn" type="button" class="btn btn--logout">Odhlásit se</button>
+      </div>
+    </header>
+
+    <main class="container" style="max-width: 560px;">
+      <h1 style="font-size:22px; font-weight:700; margin:0 0 24px; letter-spacing:-0.3px;">Nastavení účtu</h1>
+
+      <section class="card" style="padding: 24px 26px; margin-bottom: 20px;">
+        <h2 style="font-size:16px; font-weight:600; margin:0 0 4px;">Změna hesla</h2>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0 0 20px;">
+          Po změně hesla budou všechna ostatní zařízení odhlášena. Tato relace zůstane aktivní.
+        </p>
+
+        <div id="changePasswordSuccess" class="auth-success hidden" role="alert">
+          <p>✓ Heslo bylo úspěšně změněno.</p>
+        </div>
+        <div id="changePasswordError" class="auth-error-banner hidden" role="alert">
+          <p id="changePasswordErrorMsg">Chyba při změně hesla.</p>
+        </div>
+
+        <div class="login-field">
+          <label for="currentPassword">Současné heslo</label>
+          <input id="currentPassword" type="password" autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <div class="login-field">
+          <label for="newPassword">Nové heslo <span class="auth-field-note">(min. 8 znaků)</span></label>
+          <input id="newPassword" type="password" autocomplete="new-password" placeholder="••••••••" />
+        </div>
+        <div class="login-field">
+          <label for="newPasswordConfirm">Potvrdit nové heslo</label>
+          <input id="newPasswordConfirm" type="password" autocomplete="new-password" placeholder="••••••••" />
+        </div>
+
+        <button id="changePasswordBtn" type="button" class="btn btn--primary" style="width:100%; margin-top:4px;">
+          Změnit heslo
+        </button>
+        <p id="changePasswordLoading" class="auth-loading hidden">Ukládám…</p>
+      </section>
+    </main>
+  </body>
+</html>

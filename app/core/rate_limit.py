@@ -27,6 +27,7 @@ _AUTH_PATHS = frozenset(
         "/api/v1/auth/reset-password",
         "/api/v1/auth/verify-email",
         "/api/v1/auth/resend-verification",
+        "/api/v1/auth/change-password",
     }
 )
 _WINDOW_SEC = int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SEC", "60"))
