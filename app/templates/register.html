@@ -40,6 +40,12 @@
         <div class="login-field">
           <label for="registerPassword">Heslo (min. 8 znaků)</label>
           <input id="registerPassword" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••" />
+          <p id="registerPasswordErr" class="login-error" role="alert"></p>
+        </div>
+        <div class="login-field">
+          <label for="registerConfirmPassword">Potvrďte heslo</label>
+          <input id="registerConfirmPassword" type="password" autocomplete="new-password" required placeholder="Zopakujte heslo" />
+          <p id="registerConfirmErr" class="login-error" role="alert"></p>
         </div>
         <div class="login-field">
           <label for="registerClientName">Název firmy / klienta</label>
