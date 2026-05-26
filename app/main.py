@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 from fastapi import FastAPI, HTTPException, Request
@@ -85,10 +86,113 @@ def create_app() -> FastAPI:
         if startup.is_production
         else {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
     )
+
+    async def _hourly_google_ads_sync_loop() -> None:
+        while True:
+            try:
+
+                def _run() -> None:
+                    worker_tokens = bind_worker_correlation_context()
+                    try:
+                        run_google_ads_sync_all_clients_once()
+                    finally:
+                        reset_worker_correlation_context(worker_tokens)
+
+                await asyncio.to_thread(_run)
+            except Exception:
+                logger.exception(
+                    "background_job_failed job=google_ads_sync_all_clients alert_severity=high",
+                    extra={
+                        "job": "google_ads_sync_all_clients",
+                        "alert_severity": "high",
+                        "error_category": "background_job",
+                    },
+                )
+            await asyncio.sleep(3600)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        logger.info("startup_step step=configure_structured_logging status=begin")
+        try:
+            configure_structured_logging()
+        except Exception:
+            logger.exception("startup_step step=configure_structured_logging status=failed")
+            raise
+        logger.info("startup_step step=configure_structured_logging status=done")
+
+        logger.info("startup_step step=validate_startup_config status=begin")
+        try:
+            validate_startup_config()
+        except Exception:
+            logger.exception("startup_step step=validate_startup_config status=failed")
+            raise
+        logger.info("startup_step step=validate_startup_config status=done")
+
+        logger.info("startup_step step=log_database_startup status=begin")
+        try:
+            log_database_startup(logger)
+        except Exception:
+            logger.exception("startup_step step=log_database_startup status=failed")
+            raise
+        logger.info("startup_step step=log_database_startup status=done")
+
+        logger.info("startup_step step=log_web_paths status=begin")
+        try:
+            log_web_paths(logger)
+        except Exception:
+            logger.exception("startup_step step=log_web_paths status=failed")
+            raise
+        logger.info("startup_step step=log_web_paths status=done")
+
+        logger.info("startup_step step=create_db_and_tables status=begin")
+        try:
+            create_db_and_tables()
+        except Exception:
+            logger.exception("startup_step step=create_db_and_tables status=failed")
+            raise
+        logger.info("startup_step step=create_db_and_tables status=done")
+
+        logger.info("startup_step step=expired_token_cleanup status=begin")
+        try:
+            with Session(engine) as _cleanup_session:
+                jti_deleted = RefreshTokenJtiRepository().delete_expired(_cleanup_session)
+                reset_deleted = PasswordResetRepository().delete_expired(_cleanup_session)
+            logger.info(
+                "startup_step step=expired_token_cleanup status=done "
+                "jti_deleted=%d reset_tokens_deleted=%d",
+                jti_deleted,
+                reset_deleted,
+            )
+        except Exception:
+            logger.exception(
+                "startup_step step=expired_token_cleanup status=failed — "
+                "cleanup skipped, app continues"
+            )
+
+        s = get_startup_settings()
+        logger.info(
+            "startup app_env=%s production=%s cookie_secure=%s cookie_samesite=%s "
+            "background_sync=%s google_ads_user_api=%s legacy_v1_csv=%s sqlalchemy_dialect=%s",
+            s.app_env,
+            s.is_production,
+            s.cookie_secure,
+            s.cookie_samesite,
+            s.enable_background_sync,
+            s.enable_google_ads_user_api,
+            s.enable_legacy_v1_csv_campaigns,
+            engine.dialect.name,
+        )
+        if s.enable_background_sync:
+            asyncio.create_task(_hourly_google_ads_sync_loop())
+
+        yield
+        # No shutdown logic required.
+
     app = FastAPI(
         title="Marketing Analytics API",
         version="1.0.0",
         description="API for marketing analytics",
+        lifespan=lifespan,
         **doc_urls,
     )
 
@@ -281,104 +385,6 @@ def create_app() -> FastAPI:
         response.headers[REQUEST_ID_HEADER] = request_id
         response.headers[TRACE_ID_HEADER] = trace_id
         return response
-
-    async def _hourly_google_ads_sync_loop() -> None:
-        while True:
-            try:
-
-                def _run() -> None:
-                    worker_tokens = bind_worker_correlation_context()
-                    try:
-                        run_google_ads_sync_all_clients_once()
-                    finally:
-                        reset_worker_correlation_context(worker_tokens)
-
-                await asyncio.to_thread(_run)
-            except Exception:
-                logger.exception(
-                    "background_job_failed job=google_ads_sync_all_clients alert_severity=high",
-                    extra={
-                        "job": "google_ads_sync_all_clients",
-                        "alert_severity": "high",
-                        "error_category": "background_job",
-                    },
-                )
-            await asyncio.sleep(3600)
-
-    @app.on_event("startup")
-    async def _on_startup() -> None:
-        logger.info("startup_step step=configure_structured_logging status=begin")
-        try:
-            configure_structured_logging()
-        except Exception:
-            logger.exception("startup_step step=configure_structured_logging status=failed")
-            raise
-        logger.info("startup_step step=configure_structured_logging status=done")
-
-        logger.info("startup_step step=validate_startup_config status=begin")
-        try:
-            validate_startup_config()
-        except Exception:
-            logger.exception("startup_step step=validate_startup_config status=failed")
-            raise
-        logger.info("startup_step step=validate_startup_config status=done")
-
-        logger.info("startup_step step=log_database_startup status=begin")
-        try:
-            log_database_startup(logger)
-        except Exception:
-            logger.exception("startup_step step=log_database_startup status=failed")
-            raise
-        logger.info("startup_step step=log_database_startup status=done")
-
-        logger.info("startup_step step=log_web_paths status=begin")
-        try:
-            log_web_paths(logger)
-        except Exception:
-            logger.exception("startup_step step=log_web_paths status=failed")
-            raise
-        logger.info("startup_step step=log_web_paths status=done")
-
-        logger.info("startup_step step=create_db_and_tables status=begin")
-        try:
-            create_db_and_tables()
-        except Exception:
-            logger.exception("startup_step step=create_db_and_tables status=failed")
-            raise
-        logger.info("startup_step step=create_db_and_tables status=done")
-
-        logger.info("startup_step step=expired_token_cleanup status=begin")
-        try:
-            with Session(engine) as _cleanup_session:
-                jti_deleted = RefreshTokenJtiRepository().delete_expired(_cleanup_session)
-                reset_deleted = PasswordResetRepository().delete_expired(_cleanup_session)
-            logger.info(
-                "startup_step step=expired_token_cleanup status=done "
-                "jti_deleted=%d reset_tokens_deleted=%d",
-                jti_deleted,
-                reset_deleted,
-            )
-        except Exception:
-            logger.exception(
-                "startup_step step=expired_token_cleanup status=failed — "
-                "cleanup skipped, app continues"
-            )
-
-        s = get_startup_settings()
-        logger.info(
-            "startup app_env=%s production=%s cookie_secure=%s cookie_samesite=%s "
-            "background_sync=%s google_ads_user_api=%s legacy_v1_csv=%s sqlalchemy_dialect=%s",
-            s.app_env,
-            s.is_production,
-            s.cookie_secure,
-            s.cookie_samesite,
-            s.enable_background_sync,
-            s.enable_google_ads_user_api,
-            s.enable_legacy_v1_csv_campaigns,
-            engine.dialect.name,
-        )
-        if s.enable_background_sync:
-            asyncio.create_task(_hourly_google_ads_sync_loop())
 
     @app.middleware("http")
     async def auto_refresh_access_token(request: Request, call_next):

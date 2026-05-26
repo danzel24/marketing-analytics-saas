@@ -57,7 +57,7 @@ def _rate_limit_json_response(request: Request) -> JSONResponse:
     trace_id = get_trace_id(request) or request_id
     payload = build_error_payload(
         code="rate_limited",
-        message="Too many requests. Please try again later.",
+        message="Příliš mnoho požadavků. Zkuste to prosím za chvíli.",
         request_id=request_id,
         trace_id=trace_id,
     )
