@@ -137,9 +137,14 @@ def forgot_password(
     if user is None or user.id is None:
         return _SUCCESS
 
+    reset_repo = PasswordResetRepository()
+    # Invalidate any pending (unused, unexpired) tokens before issuing a new one.
+    # Prevents token proliferation if the user clicks "Forgot password" multiple times.
+    reset_repo.delete_pending_for_user(session, user_id=user.id)
+
     token = secrets.token_hex(32)  # 64-char hex
     expires_at = utcnow() + timedelta(hours=1)
-    PasswordResetRepository().create_token(
+    reset_repo.create_token(
         session, user_id=user.id, token=token, expires_at=expires_at
     )
 

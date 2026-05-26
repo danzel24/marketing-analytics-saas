@@ -78,6 +78,10 @@ _SKIP_SILENT_REFRESH_PATHS = frozenset(
     }
 )
 
+# Path prefixes that never need silent refresh — skip to avoid opening a DB session for every
+# static asset or health-check request.
+_SKIP_SILENT_REFRESH_PREFIXES = ("/static/", "/health", "/favicon")
+
 
 def create_app() -> FastAPI:
     startup = get_startup_settings()
@@ -388,7 +392,10 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def auto_refresh_access_token(request: Request, call_next):
-        if request.url.path in _SKIP_SILENT_REFRESH_PATHS:
+        path = request.url.path
+        if path in _SKIP_SILENT_REFRESH_PATHS:
+            return await call_next(request)
+        if any(path.startswith(pfx) for pfx in _SKIP_SILENT_REFRESH_PREFIXES):
             return await call_next(request)
 
         auth_header = request.headers.get("authorization", "")
