@@ -62,6 +62,37 @@
         </button>
         <p id="changePasswordLoading" class="auth-loading hidden">Ukládám…</p>
       </section>
+
+      <!-- Danger zone -->
+      <section class="card" style="padding: 24px 26px; border-color: rgba(199,0,21,0.2);">
+        <h2 style="font-size:16px; font-weight:600; margin:0 0 4px; color:var(--red);">Nebezpečná zóna</h2>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0 0 20px; line-height:1.5;">
+          Smazání účtu je nevratné. Budou odstraněna všechna data: kampaně, metriky, nastavení.
+        </p>
+
+        <div id="deleteAccountForm" class="hidden">
+          <div id="deleteAccountError" class="auth-error-banner hidden" role="alert">
+            <p id="deleteAccountErrorMsg">Chyba při mazání účtu.</p>
+          </div>
+          <div class="login-field">
+            <label for="deletePassword">Potvrďte heslo pro smazání</label>
+            <input id="deletePassword" type="password" autocomplete="current-password" placeholder="••••••••" />
+          </div>
+          <div style="display:flex; gap:10px; margin-top:4px;">
+            <button id="deleteAccountConfirmBtn" type="button" class="btn btn--danger-outline">
+              Trvale smazat účet
+            </button>
+            <button id="deleteAccountCancelBtn" type="button" class="btn btn--secondary btn--small">
+              Zrušit
+            </button>
+          </div>
+          <p id="deleteAccountLoading" class="auth-loading hidden">Mažu účet…</p>
+        </div>
+
+        <button id="deleteAccountShowBtn" type="button" class="btn btn--danger-outline">
+          Smazat účet a všechna data
+        </button>
+      </section>
     </main>
   </body>
 </html>

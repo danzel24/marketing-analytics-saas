@@ -6,7 +6,7 @@ import time
 from datetime import timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response
-from sqlmodel import Session
+from sqlmodel import Session, delete, select
 
 from app.core.auth_cookies import clear_refresh_cookie, set_refresh_cookie
 from app.core.deps import get_current_user
@@ -19,12 +19,22 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_session
-from app.models.db_models import User, utcnow
+from app.models.db_models import (
+    Campaign,
+    CampaignMetric,
+    Client,
+    EmailVerificationToken,
+    Integration,
+    PasswordResetToken,
+    RefreshTokenJti,
+    User,
+    utcnow,
+)
 from app.repositories.client_repository import ClientRepository
 from app.repositories.email_verification_repository import EmailVerificationRepository
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import ChangePasswordIn, ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut, VerifyEmailIn
+from app.schemas.auth import ChangePasswordIn, DeleteAccountIn, ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut, VerifyEmailIn
 from app.services.auth_service import AuthService
 from app.services.email_service import send_password_reset_email, send_verification_email
 from app.services.marketing_service import MarketingService
@@ -309,3 +319,53 @@ def change_password(
         "message": "Heslo bylo úspěšně změněno.",
         "access_token": tokens["access_token"],
     }
+
+
+@router.post("/api/v1/auth/delete-account")
+def delete_account(
+    body: DeleteAccountIn,
+    response: Response,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Permanently delete the authenticated user's account and all associated data.
+
+    Requires password confirmation. Deletion order respects FK constraints:
+    tokens → JTIs → user → metrics → campaigns → integrations → client.
+    """
+    if not verify_password(body.password, str(current_user.password_hash)):
+        raise ValidationError("Heslo je nesprávné.")
+
+    user_id = int(current_user.id)  # type: ignore[arg-type]
+    client_id = int(current_user.client_id)
+
+    # 1. User-scoped tokens
+    session.exec(delete(EmailVerificationToken).where(EmailVerificationToken.user_id == user_id))
+    session.exec(delete(PasswordResetToken).where(PasswordResetToken.user_id == user_id))
+    session.exec(delete(RefreshTokenJti).where(RefreshTokenJti.user_id == user_id))
+
+    # 2. User row (FK to client — must go before client)
+    session.exec(delete(User).where(User.id == user_id))
+
+    # 3. Campaign metrics → campaigns → integrations (all scoped to client)
+    campaign_ids = [
+        row.id for row in session.exec(
+            select(Campaign.id).where(Campaign.client_id == client_id)  # type: ignore[arg-type]
+        ).all()
+        if row.id is not None
+    ]
+    if campaign_ids:
+        session.exec(delete(CampaignMetric).where(CampaignMetric.campaign_id.in_(campaign_ids)))  # type: ignore[union-attr]
+    session.exec(delete(Campaign).where(Campaign.client_id == client_id))
+    session.exec(delete(Integration).where(Integration.client_id == client_id))
+
+    # 4. Client row
+    session.exec(delete(Client).where(Client.id == client_id))
+
+    session.commit()
+    logger.info("delete_account completed user_id=%s client_id=%s", user_id, client_id)
+
+    # Clear session cookies
+    clear_refresh_cookie(response)
+    window_clearToken_hint = "cleared"  # noqa: F841 — handled client-side
+    return {"status": "ok", "message": "Účet byl trvale smazán."}

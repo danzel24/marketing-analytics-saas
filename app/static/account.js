@@ -87,4 +87,72 @@
       }
     });
   }
+
+  // ── Delete account ────────────────────────────────────────────────────────
+  var deleteShowBtn = document.getElementById("deleteAccountShowBtn");
+  var deleteForm = document.getElementById("deleteAccountForm");
+  var deleteCancelBtn = document.getElementById("deleteAccountCancelBtn");
+  var deleteConfirmBtn = document.getElementById("deleteAccountConfirmBtn");
+  var deletePasswordEl = document.getElementById("deletePassword");
+  var deleteErrorEl = document.getElementById("deleteAccountError");
+  var deleteErrorMsgEl = document.getElementById("deleteAccountErrorMsg");
+  var deleteLoadingEl = document.getElementById("deleteAccountLoading");
+
+  if (deleteShowBtn) {
+    deleteShowBtn.addEventListener("click", function () {
+      deleteShowBtn.classList.add("hidden");
+      if (deleteForm) deleteForm.classList.remove("hidden");
+      if (deletePasswordEl) deletePasswordEl.focus();
+    });
+  }
+
+  if (deleteCancelBtn) {
+    deleteCancelBtn.addEventListener("click", function () {
+      if (deleteForm) deleteForm.classList.add("hidden");
+      deleteShowBtn.classList.remove("hidden");
+      if (deletePasswordEl) deletePasswordEl.value = "";
+      if (deleteErrorEl) deleteErrorEl.classList.add("hidden");
+    });
+  }
+
+  if (deleteConfirmBtn) {
+    deleteConfirmBtn.addEventListener("click", async function () {
+      if (deleteErrorEl) deleteErrorEl.classList.add("hidden");
+      var pwd = deletePasswordEl ? deletePasswordEl.value : "";
+      if (!pwd) {
+        if (deleteErrorEl) deleteErrorEl.classList.remove("hidden");
+        if (deleteErrorMsgEl) deleteErrorMsgEl.textContent = "Zadejte heslo pro potvrzení.";
+        return;
+      }
+
+      deleteConfirmBtn.disabled = true;
+      if (deleteCancelBtn) deleteCancelBtn.disabled = true;
+      if (deleteLoadingEl) deleteLoadingEl.classList.remove("hidden");
+
+      try {
+        var res = await window.fetchWithAuth("/api/v1/auth/delete-account", {
+          method: "POST",
+          body: JSON.stringify({ password: pwd }),
+        });
+        var data = await res.json();
+        if (!res.ok) {
+          if (deleteErrorEl) deleteErrorEl.classList.remove("hidden");
+          if (deleteErrorMsgEl) deleteErrorMsgEl.textContent = window.apiErrorMessage(data);
+          deleteConfirmBtn.disabled = false;
+          if (deleteCancelBtn) deleteCancelBtn.disabled = false;
+          return;
+        }
+        // Success — clear session and redirect to login
+        window.clearToken();
+        window.location.href = "/login";
+      } catch (err) {
+        if (deleteErrorEl) deleteErrorEl.classList.remove("hidden");
+        if (deleteErrorMsgEl) deleteErrorMsgEl.textContent = err.message || "Nepodařilo se smazat účet.";
+        deleteConfirmBtn.disabled = false;
+        if (deleteCancelBtn) deleteCancelBtn.disabled = false;
+      } finally {
+        if (deleteLoadingEl) deleteLoadingEl.classList.add("hidden");
+      }
+    });
+  }
 })();
