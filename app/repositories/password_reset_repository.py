@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlmodel import Session, select
+from sqlalchemy import or_
+from sqlmodel import Session, delete, select
 
 from app.models.db_models import PasswordResetToken
 
@@ -50,3 +51,16 @@ class PasswordResetRepository:
         """Stage token_row.used = True. Caller is responsible for session.commit()."""
         token_row.used = True
         session.add(token_row)
+
+    def delete_expired(self, session: Session) -> int:
+        """Delete tokens that are expired or already used. Returns count deleted."""
+        now = datetime.now(tz=timezone.utc)
+        stmt = delete(PasswordResetToken).where(
+            or_(
+                PasswordResetToken.expires_at < now,
+                PasswordResetToken.used == True,  # noqa: E712
+            )
+        )
+        result = session.exec(stmt)
+        session.commit()
+        return int(result.rowcount or 0)

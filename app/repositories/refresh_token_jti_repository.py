@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, delete, select
@@ -17,6 +17,10 @@ class RefreshTokenJtiRepository:
         result = session.exec(stmt)
         session.commit()
         return int(result.rowcount or 0)
+
+    def delete_expired(self, session: Session) -> int:
+        """Delete all JTI rows whose JWT expiry is in the past. Returns count deleted."""
+        return self.delete_expired_before(session, before=datetime.now(timezone.utc))
 
     def try_consume_refresh_jti(
         self,
