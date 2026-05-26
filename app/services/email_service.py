@@ -170,6 +170,58 @@ def _send_via_smtp(
 # Public entry point
 # ---------------------------------------------------------------------------
 
+def send_verification_email(*, to_email: str, verify_link: str) -> None:
+    """Send an email-verification link after registration. Never raises."""
+    subject = "Ověřte svůj email — Marketingový přehled"
+    text_body = (
+        "Dobrý den,\n\n"
+        f"klikněte na odkaz pro ověření emailové adresy:\n{verify_link}\n\n"
+        "Odkaz je platný 24 hodin."
+    )
+    html_body = (
+        "<html><body>"
+        "<p>Dobrý den,</p>"
+        "<p>klikněte na odkaz pro ověření emailové adresy:<br>"
+        f'<a href="{verify_link}">{verify_link}</a></p>'
+        "<p>Odkaz je platný 24 hodin.</p>"
+        "</body></html>"
+    )
+
+    api_key = _brevo_api_key()
+    if api_key:
+        try:
+            _send_via_brevo_api(
+                api_key=api_key,
+                to_email=to_email,
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+                from_addr=_from_addr(),
+            )
+        except Exception:
+            pass
+        return
+
+    try:
+        cfg = _smtp_config()
+    except Exception:
+        logger.exception("email_service _smtp_config failed (verification)")
+        return
+
+    if cfg is None:
+        logger.info(
+            "email_service not_configured — verification link (dev only): to=%s link=%s",
+            to_email,
+            verify_link,
+        )
+        return
+
+    try:
+        _send_via_smtp(cfg=cfg, to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
+    except Exception:
+        logger.exception("email_service smtp_error sending verification to=%s", to_email)
+
+
 def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
     """Send a password-reset email.
 

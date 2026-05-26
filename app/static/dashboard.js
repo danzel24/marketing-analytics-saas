@@ -220,6 +220,38 @@ function fetchJson(url) {
 async function loadCurrentUser() {
   try {
     const me = await fetchJson("/api/v1/auth/me");
+
+    // Email verification banner
+    const banner = document.getElementById("verifyEmailBanner");
+    const resendBtn = document.getElementById("resendVerifyBtn");
+    if (banner && me && me.email_verified === false) {
+      banner.classList.remove("hidden");
+      if (resendBtn) {
+        resendBtn.addEventListener("click", async () => {
+          resendBtn.disabled = true;
+          resendBtn.textContent = "Odesílám…";
+          try {
+            const r = await fetch("/api/v1/auth/resend-verification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+            });
+            if (r.ok) {
+              resendBtn.textContent = "Odesláno ✓";
+              const textEl = banner.querySelector(".verify-banner__text");
+              if (textEl) textEl.textContent = "Ověřovací email byl odeslán. Zkontrolujte doručenou poštu.";
+            } else {
+              resendBtn.textContent = "Chyba — zkuste znovu";
+              resendBtn.disabled = false;
+            }
+          } catch {
+            resendBtn.textContent = "Chyba — zkuste znovu";
+            resendBtn.disabled = false;
+          }
+        });
+      }
+    }
+
     if (els.marginPercentInput && me && me.margin_percent != null) {
       const p = Number(me.margin_percent);
       if (Number.isFinite(p) && p >= 1 && p <= 99) {

@@ -2609,3 +2609,49 @@ body {
 .auth-error-banner.hidden {
   display: none;
 }
+
+/* ── Email verification banner (dashboard) ─────────────────────────────── */
+.verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #f5a623;
+  line-height: 1.4;
+}
+
+.verify-banner__text {
+  flex: 1;
+}
+
+.verify-banner__btn {
+  flex-shrink: 0;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 6px;
+  color: #f5a623;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.verify-banner__btn:hover {
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.verify-banner__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.verify-banner.hidden {
+  display: none;
+}

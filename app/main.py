@@ -37,6 +37,7 @@ from app.core.web_templates import template_response_safe
 from app.core.security import decode_access_token
 from app.database import create_db_and_tables, engine, log_database_startup
 from app.jobs.google_ads_sync import run_google_ads_sync_all_clients_once
+from app.repositories.email_verification_repository import EmailVerificationRepository
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.refresh_token_jti_repository import RefreshTokenJtiRepository
 from app.services.auth_service import AuthService
@@ -161,11 +162,13 @@ def create_app() -> FastAPI:
             with Session(engine) as _cleanup_session:
                 jti_deleted = RefreshTokenJtiRepository().delete_expired(_cleanup_session)
                 reset_deleted = PasswordResetRepository().delete_expired(_cleanup_session)
+                ver_deleted = EmailVerificationRepository().delete_expired(_cleanup_session)
             logger.info(
                 "startup_step step=expired_token_cleanup status=done "
-                "jti_deleted=%d reset_tokens_deleted=%d",
+                "jti_deleted=%d reset_tokens_deleted=%d ver_tokens_deleted=%d",
                 jti_deleted,
                 reset_deleted,
+                ver_deleted,
             )
         except Exception:
             logger.exception(

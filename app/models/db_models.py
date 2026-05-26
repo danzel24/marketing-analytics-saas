@@ -28,6 +28,9 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow, index=True)
     # last_login_at: updated on successful POST /api/v1/auth/login only (not register/refresh).
     last_login_at: Optional[datetime] = Field(default=None, index=True)
+    # email_verified: False for new registrations until the link in the welcome email is clicked.
+    # Migration sets existing rows to True so pre-existing users are not affected.
+    email_verified: bool = Field(default=False, index=True)
 
 
 class Campaign(SQLModel, table=True):
@@ -107,6 +110,20 @@ class LeadInteraction(SQLModel, table=True):
     channel: str = Field(default="email", max_length=32)
     direction: str = Field(default="outbound", max_length=32)
     message_summary: str = Field(sa_column=Column(Text, nullable=False))
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+
+
+class EmailVerificationToken(SQLModel, table=True):
+    """Single-use email verification tokens; expire after 24 hours."""
+
+    __tablename__ = "emailverificationtoken"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    # 64-char hex string (secrets.token_hex(32))
+    token: str = Field(index=True, unique=True, max_length=128)
+    expires_at: datetime = Field(index=True)
+    used: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
 

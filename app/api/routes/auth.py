@@ -19,11 +19,12 @@ from app.core.security import (
 from app.database import get_session
 from app.models.db_models import User, utcnow
 from app.repositories.client_repository import ClientRepository
+from app.repositories.email_verification_repository import EmailVerificationRepository
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut
+from app.schemas.auth import ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut, VerifyEmailIn
 from app.services.auth_service import AuthService
-from app.services.email_service import send_password_reset_email
+from app.services.email_service import send_password_reset_email, send_verification_email
 from app.services.marketing_service import MarketingService
 
 router = APIRouter(tags=["auth"])
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/api/v1/auth/register", response_model=TokenOut)
-def register(payload: RegisterIn, response: Response, session: Session = Depends(get_session)) -> TokenOut:
+def register(payload: RegisterIn, request: Request, response: Response, session: Session = Depends(get_session)) -> TokenOut:
     svc = AuthService()
     user = svc.register(session, email=str(payload.email), password=payload.password, client_name=payload.client_name)
     tokens = svc.issue_tokens_for_user(
@@ -40,6 +41,20 @@ def register(payload: RegisterIn, response: Response, session: Session = Depends
         remember_me=False,
     )
     set_refresh_cookie(response, tokens["refresh_token"], REFRESH_TOKEN_SHORT_EXPIRES_SECONDS)
+
+    # Send verification email (non-fatal — registration succeeds regardless)
+    try:
+        ver_repo = EmailVerificationRepository()
+        ver_token = secrets.token_hex(32)
+        ver_expires = utcnow() + timedelta(hours=24)
+        ver_repo.create_token(session, user_id=user.id, token=ver_token, expires_at=ver_expires)
+        base = str(request.base_url).rstrip("/")
+        verify_link = f"{base}/verify-email?token={ver_token}"
+        send_verification_email(to_email=str(payload.email), verify_link=verify_link)
+        logger.info("register verification_email_sent user_id=%s", user.id)
+    except Exception:
+        logger.exception("register verification_email_failed user_id=%s — continuing", user.id)
+
     return TokenOut(access_token=tokens["access_token"])
 
 
@@ -115,6 +130,7 @@ def get_me(
         "email": current_user.email,
         "is_admin": str(getattr(current_user, "role", "user")) == "admin",
         "margin_percent": int(round(m * 100)),
+        "email_verified": bool(getattr(current_user, "email_verified", True)),
     }
 
 
@@ -182,3 +198,52 @@ def reset_password(
     session.commit()
     logger.info("reset_password success user_id=%s", user.id)
     return {"status": "ok", "message": "Heslo bylo úspěšně změněno."}
+
+
+@router.post("/api/v1/auth/verify-email")
+def verify_email(
+    body: VerifyEmailIn,
+    session: Session = Depends(get_session),
+) -> dict[str, str]:
+    """Consume an email verification token and mark the user's email as verified."""
+    ver_repo = EmailVerificationRepository()
+    user_repo = UserRepository()
+
+    token_row = ver_repo.get_valid_token(session, token=body.token)
+    if token_row is None:
+        raise ValidationError("Odkaz pro ověření je neplatný nebo vypršel. Požádejte o nový.")
+
+    user = user_repo.get_by_id_unscoped_internal(session, token_row.user_id, _internal_call=True)
+    if user is None:
+        raise ValidationError("Odkaz pro ověření je neplatný nebo vypršel. Požádejte o nový.")
+
+    user.email_verified = True
+    session.add(user)
+    ver_repo.mark_used(session, token_row=token_row)
+    session.commit()
+    logger.info("verify_email success user_id=%s", user.id)
+    return {"status": "ok", "message": "Email byl úspěšně ověřen."}
+
+
+@router.post("/api/v1/auth/resend-verification")
+def resend_verification(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Re-issue a verification email for the currently logged-in user."""
+    if bool(getattr(current_user, "email_verified", True)):
+        return {"status": "ok", "message": "Email je již ověřen."}
+
+    ver_repo = EmailVerificationRepository()
+    ver_repo.delete_pending_for_user(session, user_id=current_user.id)
+
+    ver_token = secrets.token_hex(32)
+    ver_expires = utcnow() + timedelta(hours=24)
+    ver_repo.create_token(session, user_id=current_user.id, token=ver_token, expires_at=ver_expires)
+
+    base = str(request.base_url).rstrip("/")
+    verify_link = f"{base}/verify-email?token={ver_token}"
+    send_verification_email(to_email=current_user.email, verify_link=verify_link)
+    logger.info("resend_verification sent user_id=%s", current_user.id)
+    return {"status": "ok", "message": "Ověřovací email byl odeslán."}

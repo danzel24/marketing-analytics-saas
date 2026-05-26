@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ověření emailu — Marketingový přehled</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/common.js"></script>
+    <script defer src="/static/verify_email.js"></script>
+  </head>
+  <body class="auth-page">
+    <header class="topbar topbar--auth">
+      <div class="topbar__left">
+        <a href="/" class="brand brand--link">
+          <div class="brand__logo">MA</div>
+          <div class="brand__text">
+            <div class="brand__title">Marketingový přehled</div>
+            <div class="brand__subtitle">Ověření emailu</div>
+          </div>
+        </a>
+      </div>
+      <nav class="topbar__nav">
+        <a class="topbar__nav-link" href="/login">Přihlášení</a>
+        {% include "_feedback_nav_link.html" %}
+      </nav>
+    </header>
+
+    <main class="auth-main">
+      <div class="card login-card auth-card">
+        <h1 class="auth-card__title">Ověření emailu</h1>
+
+        <p id="verifyLoading" class="login-subtitle">Ověřuji váš email…</p>
+
+        <div id="verifySuccess" class="auth-success hidden" role="status">
+          <p>✓ Email byl úspěšně ověřen.</p>
+          <p><a href="/dashboard">Přejít na přehled →</a></p>
+        </div>
+
+        <div id="verifyError" class="auth-error-banner hidden" role="alert">
+          <p id="verifyErrorText">Odkaz pro ověření je neplatný nebo vypršel.</p>
+          <p><a href="/dashboard">Přejít na přehled a odeslat nový odkaz →</a></p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

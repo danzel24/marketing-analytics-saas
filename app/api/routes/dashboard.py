@@ -57,6 +57,11 @@ def reset_password_page(request: Request) -> HTMLResponse:
     return template_response(request=request, name="reset_password.html")
 
 
+@router.get("/verify-email", response_class=HTMLResponse)
+def verify_email_page(request: Request) -> HTMLResponse:
+    return template_response(request=request, name="verify_email.html")
+
+
 @router.get("/channel-overview", response_class=HTMLResponse)
 def channel_overview_page(request: Request) -> HTMLResponse:
     return template_response(request=request, name="channel_overview.html")
