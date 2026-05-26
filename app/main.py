@@ -453,6 +453,41 @@ def create_app() -> FastAPI:
     async def _request_correlation_middleware(request: Request, call_next):
         return await correlation_id_middleware(request, call_next)
 
+    # ── Security headers ──────────────────────────────────────────────────────
+    # Applied to every response. Registered last so it runs outermost and
+    # cannot be bypassed by other middleware returning early.
+    #
+    # CSP notes:
+    #   script-src: allows Chart.js from jsdelivr.net (only external script)
+    #   style-src 'unsafe-inline': templates use inline style= attributes;
+    #     removing inline styles and switching to a nonce would be a larger
+    #     refactor — this is the safe default for now.
+    _CSP = (
+        "default-src 'self'; "
+        "script-src 'self' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'; "
+        "base-uri 'self'; "
+        "object-src 'none';"
+    )
+
+    @app.middleware("http")
+    async def _security_headers_middleware(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("X-XSS-Protection", "0")
+        response.headers.setdefault(
+            "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+        )
+        response.headers.setdefault("Content-Security-Policy", _CSP)
+        return response
+
     if get_startup_settings().enable_legacy_v1_csv_campaigns:
         app.include_router(campaigns_router, prefix="/v1")
 

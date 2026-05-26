@@ -36,7 +36,7 @@ from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import ChangePasswordIn, DeleteAccountIn, ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn, TokenOut, VerifyEmailIn
 from app.services.auth_service import AuthService
-from app.services.email_service import send_password_reset_email, send_verification_email
+from app.services.email_service import send_password_changed_notification, send_password_reset_email, send_verification_email
 from app.services.marketing_service import MarketingService
 
 router = APIRouter(tags=["auth"])
@@ -282,6 +282,7 @@ def resend_verification(
 def change_password(
     body: ChangePasswordIn,
     response: Response,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
@@ -312,6 +313,9 @@ def change_password(
     )
     set_refresh_cookie(response, tokens["refresh_token"], REFRESH_TOKEN_EXPIRES_SECONDS)
     response.headers["x-access-token"] = tokens["access_token"]
+
+    # Notify the user via email in the background (non-blocking, never raises).
+    background_tasks.add_task(send_password_changed_notification, to_email=current_user.email)
 
     logger.info("change_password success user_id=%s", current_user.id)
     return {

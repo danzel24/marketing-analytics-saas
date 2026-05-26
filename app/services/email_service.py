@@ -1,8 +1,8 @@
-"""Transactional email sender for password reset.
+"""Transactional email sender for auth notifications.
 
 Primary:  Brevo HTTP API (BREVO_API_KEY) — works on all Render tiers (port 443).
 Fallback: SMTP via smtplib (SMTP_HOST) — blocked by Render on free tier.
-Dev:      No config → reset link written to application log only.
+Dev:      No config → message written to application log only.
 """
 
 from __future__ import annotations
@@ -311,3 +311,64 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
             cfg["from_addr"],
             to_email,
         )
+
+
+def send_password_changed_notification(*, to_email: str) -> None:
+    """Notify the user that their password was changed.
+
+    Sent as a background task from the change-password endpoint so it never
+    blocks the response.  Never raises — failure is only logged.
+    """
+    subject = "Heslo bylo změněno — Marketingový přehled"
+    text_body = (
+        "Dobrý den,\n\n"
+        "vaše heslo bylo právě úspěšně změněno.\n\n"
+        "Pokud jste tuto změnu neprovedli, okamžitě si obnovte heslo na adrese "
+        "https://marketingovy-prehled.cz/forgot-password nebo nás kontaktujte.\n\n"
+        "S pozdravem,\nTým Marketingový přehled"
+    )
+    html_body = (
+        "<html><body>"
+        "<p>Dobrý den,</p>"
+        "<p>vaše heslo bylo právě úspěšně změněno.</p>"
+        "<p>Pokud jste tuto změnu neprovedli, okamžitě si "
+        '<a href="https://marketingovy-prehled.cz/forgot-password">obnovte heslo</a> '
+        "nebo nás kontaktujte.</p>"
+        "<p>S pozdravem,<br>Tým Marketingový přehled</p>"
+        "</body></html>"
+    )
+
+    # --- Path 1: Brevo HTTP API (works on all Render tiers) -----------------
+    api_key = _brevo_api_key()
+    if api_key:
+        try:
+            _send_via_brevo_api(
+                api_key=api_key,
+                to_email=to_email,
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+                from_addr=_from_addr(),
+            )
+        except Exception:
+            pass
+        return
+
+    # --- Path 2: SMTP fallback (blocked on Render free tier) ----------------
+    try:
+        cfg = _smtp_config()
+    except Exception:
+        logger.exception("email_service _smtp_config failed (password_changed)")
+        return
+
+    if cfg is None:
+        logger.info(
+            "email_service not_configured — password changed notification skipped (dev only): to=%s",
+            to_email,
+        )
+        return
+
+    try:
+        _send_via_smtp(cfg=cfg, to_email=to_email, subject=subject, html_body=html_body, text_body=text_body)
+    except Exception:
+        logger.exception("email_service smtp_error sending password_changed to=%s", to_email)
