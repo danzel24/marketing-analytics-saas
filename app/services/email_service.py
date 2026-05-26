@@ -1,19 +1,33 @@
-"""Minimal SMTP email sender for transactional emails (password reset).
+"""Transactional email sender for password reset.
 
-If SMTP is not configured (SMTP_HOST unset), the reset link is written to the
-application log so local dev still works without a mail server.
+Primary:  Brevo HTTP API (BREVO_API_KEY) — works on all Render tiers (port 443).
+Fallback: SMTP via smtplib (SMTP_HOST) — blocked by Render on free tier.
+Dev:      No config → reset link written to application log only.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import smtplib
+import urllib.error
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+_BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+
+
+# ---------------------------------------------------------------------------
+# Config helpers
+# ---------------------------------------------------------------------------
+
+def _brevo_api_key() -> str:
+    return os.getenv("BREVO_API_KEY", "").strip()
 
 
 def _smtp_config() -> Optional[dict]:
@@ -34,52 +48,143 @@ def _smtp_config() -> Optional[dict]:
     }
 
 
-def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
-    """Send a password-reset email.
+def _from_addr() -> str:
+    """Sender address — works for both Brevo API and SMTP paths."""
+    return (
+        os.getenv("SMTP_FROM", "").strip()
+        or os.getenv("SMTP_USER", "").strip()
+        or "noreply@example.com"
+    )
 
-    Falls back to log output when SMTP is not configured (development mode).
-    SMTP errors are caught and logged — the caller always gets a clean return
-    so the API endpoint can return 200 regardless of mail delivery status.
-    """
-    print("DEBUG email_service: send_password_reset_email entered", flush=True)
-    try:
-        cfg = _smtp_config()
-    except Exception as _cfg_exc:
-        print(f"DEBUG email_service: _smtp_config() crashed: {_cfg_exc!r}", flush=True)
-        logger.exception("email_service _smtp_config failed")
-        return
 
-    print(f"DEBUG email_service: cfg={'None' if cfg is None else 'host=' + cfg['host']}", flush=True)
+# ---------------------------------------------------------------------------
+# Brevo HTTP API sender (primary — no SMTP port needed)
+# ---------------------------------------------------------------------------
 
-    if cfg is None:
-        print(f"DEBUG email_service: smtp not configured, link={reset_link}", flush=True)
-        logger.info(
-            "email_service smtp_not_configured — password reset link (dev only): "
-            "to=%s link=%s",
-            to_email,
-            reset_link,
-        )
-        return
+def _send_via_brevo_api(
+    *,
+    api_key: str,
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str,
+    from_addr: str,
+) -> None:
+    payload = json.dumps(
+        {
+            "sender": {"email": from_addr},
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "htmlContent": html_body,
+            "textContent": text_body,
+        }
+    ).encode("utf-8")
 
-    # Log what config is being used (never log the password).
-    print(f"DEBUG email_service: attempting SMTP host={cfg['host']} port={cfg['port']} user={cfg['user'] or '(empty)'}", flush=True)
+    req = urllib.request.Request(
+        _BREVO_API_URL,
+        data=payload,
+        headers={
+            "api-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+
     logger.info(
-        "email_service smtp_attempt host=%s port=%s user=%s from_addr=%s to=%s",
+        "email_service brevo_api_attempt from=%s to=%s",
+        from_addr,
+        to_email,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            status = resp.status
+            body = resp.read().decode("utf-8")
+        logger.info(
+            "email_service brevo_api_sent status=%s to=%s body=%s",
+            status,
+            to_email,
+            body[:120],
+        )
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8") if exc.fp else ""
+        logger.error(
+            "email_service brevo_api_http_error status=%s to=%s body=%s",
+            exc.code,
+            to_email,
+            body[:300],
+            exc_info=True,
+        )
+        raise
+    except Exception:
+        logger.exception(
+            "email_service brevo_api_error to=%s",
+            to_email,
+        )
+        raise
+
+
+# ---------------------------------------------------------------------------
+# SMTP sender (fallback — blocked on Render free tier)
+# ---------------------------------------------------------------------------
+
+def _send_via_smtp(
+    *,
+    cfg: dict,
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str,
+) -> None:
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = cfg["from_addr"]
+    msg["To"] = to_email
+    msg.attach(MIMEText(text_body, "plain", "utf-8"))
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    logger.info(
+        "email_service smtp_attempt host=%s port=%s user=%s from=%s to=%s",
         cfg["host"],
         cfg["port"],
         cfg["user"] or "(empty)",
         cfg["from_addr"],
         to_email,
     )
+    with smtplib.SMTP(cfg["host"], cfg["port"], timeout=10) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        if cfg["user"] and cfg["password"]:
+            server.login(cfg["user"], cfg["password"])
+        server.sendmail(cfg["from_addr"], [to_email], msg.as_string())
+    logger.info(
+        "email_service smtp_sent host=%s from=%s to=%s",
+        cfg["host"],
+        cfg["from_addr"],
+        to_email,
+    )
 
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
+    """Send a password-reset email.
+
+    Tries Brevo HTTP API first (BREVO_API_KEY), then SMTP (SMTP_HOST).
+    Falls back to log output when neither is configured (development mode).
+    Never raises — endpoint always returns 200 to avoid email enumeration.
+    """
     subject = "Obnovení hesla — Marketingový přehled"
-    body_text = (
+    text_body = (
         "Dobrý den,\n\n"
         f"klikněte na odkaz pro obnovení hesla:\n{reset_link}\n\n"
         "Odkaz je platný 1 hodinu. Pokud jste o obnovení nežádali, "
         "ignorujte tento email."
     )
-    body_html = (
+    html_body = (
         "<html><body>"
         "<p>Dobrý den,</p>"
         "<p>klikněte na odkaz pro obnovení hesla:<br>"
@@ -89,57 +194,64 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
         "</body></html>"
     )
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = cfg["from_addr"]
-    msg["To"] = to_email
-    msg.attach(MIMEText(body_text, "plain", "utf-8"))
-    msg.attach(MIMEText(body_html, "html", "utf-8"))
+    # --- Path 1: Brevo HTTP API (works on all Render tiers) -----------------
+    api_key = _brevo_api_key()
+    if api_key:
+        try:
+            _send_via_brevo_api(
+                api_key=api_key,
+                to_email=to_email,
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+                from_addr=_from_addr(),
+            )
+        except Exception:
+            # Error already logged inside _send_via_brevo_api
+            pass
+        return
+
+    # --- Path 2: SMTP fallback (blocked on Render free tier) ----------------
+    try:
+        cfg = _smtp_config()
+    except Exception:
+        logger.exception("email_service _smtp_config failed")
+        return
+
+    if cfg is None:
+        logger.info(
+            "email_service not_configured — no BREVO_API_KEY and no SMTP_HOST. "
+            "Password reset link (dev only): to=%s link=%s",
+            to_email,
+            reset_link,
+        )
+        return
 
     try:
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=10) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            if cfg["user"] and cfg["password"]:
-                server.login(cfg["user"], cfg["password"])
-            server.sendmail(cfg["from_addr"], [to_email], msg.as_string())
-        print(f"DEBUG email_service: smtp_sent host={cfg['host']}", flush=True)
-        logger.info(
-            "email_service smtp_sent host=%s from=%s to=%s",
-            cfg["host"],
-            cfg["from_addr"],
-            to_email,
+        _send_via_smtp(
+            cfg=cfg,
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
         )
-    except smtplib.SMTPAuthenticationError as exc:
-        print(f"DEBUG email_service: smtp_auth_failed {exc!r}", flush=True)
+    except smtplib.SMTPAuthenticationError:
         logger.error(
-            "email_service smtp_auth_failed host=%s port=%s user=%s — "
-            "check SMTP_USER and SMTP_PASSWORD on Render",
+            "email_service smtp_auth_failed host=%s user=%s — "
+            "check SMTP_USER and SMTP_PASSWORD",
             cfg["host"],
-            cfg["port"],
             cfg["user"] or "(empty)",
             exc_info=True,
         )
-    except smtplib.SMTPConnectError as exc:
-        print(f"DEBUG email_service: smtp_connect_failed {exc!r}", flush=True)
+    except smtplib.SMTPConnectError:
         logger.error(
             "email_service smtp_connect_failed host=%s port=%s — "
-            "check SMTP_HOST and SMTP_PORT on Render",
+            "check SMTP_HOST and SMTP_PORT (Render free tier blocks port 587)",
             cfg["host"],
             cfg["port"],
             exc_info=True,
         )
-    except smtplib.SMTPRecipientsRefused as exc:
-        print(f"DEBUG email_service: smtp_recipient_refused {exc!r}", flush=True)
-        logger.error(
-            "email_service smtp_recipient_refused to=%s recipients=%s",
-            to_email,
-            exc.recipients,
-            exc_info=True,
-        )
-    except Exception as exc:
-        print(f"DEBUG email_service: smtp_error {type(exc).__name__}: {exc!r}", flush=True)
+    except Exception:
         logger.exception(
             "email_service smtp_error host=%s port=%s from=%s to=%s",
             cfg["host"],
@@ -147,4 +259,3 @@ def send_password_reset_email(*, to_email: str, reset_link: str) -> None:
             cfg["from_addr"],
             to_email,
         )
-    # Do not re-raise — endpoint always returns 200 to avoid email enumeration
