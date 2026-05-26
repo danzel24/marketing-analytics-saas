@@ -1572,24 +1572,22 @@ function resetDashboardUi() {
   if (scenarioBox) scenarioBox.innerHTML = "";
 }
 
-async function handleLogout() {
+function handleLogout() {
+  // Clear local state and redirect immediately — don't wait for the network.
+  // The backend request is fire-and-forget: it invalidates the refresh cookie
+  // server-side, but the user doesn't need to wait for that round-trip.
   const token = window.getToken();
-  try {
-    const headers = new Headers();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    await fetch("/api/v1/auth/logout", {
-      method: "POST",
-      headers,
-      credentials: "include",
-    });
-  } catch {
-    // Fail-safe: clear local state even if backend fails.
-  } finally {
-    window.clearToken();
-    destroyCharts();
-    resetDashboardUi();
-    window.location.href = "/login";
-  }
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  fetch("/api/v1/auth/logout", {
+    method: "POST",
+    headers,
+    credentials: "include",
+    keepalive: true, // send even after navigation starts
+  }).catch(() => {});
+
+  window.clearToken();
+  window.location.href = "/login";
 }
 
 /* ── Init ───────────────────────────────────────────────── */
