@@ -616,6 +616,11 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    @app.get("/api/v1/sentry-test")
+    def sentry_test() -> dict[str, str]:
+        """Temporary endpoint — remove after verifying Sentry integration."""
+        raise RuntimeError("Sentry test error — integration check")
+
     @app.get("/api")
     def api_root() -> dict[str, Any]:
         s = get_startup_settings()
