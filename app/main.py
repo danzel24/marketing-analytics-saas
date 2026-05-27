@@ -182,6 +182,10 @@ def create_app() -> FastAPI:
             raise
         logger.info("startup_step step=configure_structured_logging status=done")
 
+        # Initialise Sentry after logging is configured so the confirmation
+        # message appears in the structured log output.
+        _init_sentry()
+
         logger.info("startup_step step=validate_startup_config status=begin")
         try:
             validate_startup_config()
@@ -628,5 +632,4 @@ def create_app() -> FastAPI:
     return app
 
 
-_init_sentry()
 app = create_app()
