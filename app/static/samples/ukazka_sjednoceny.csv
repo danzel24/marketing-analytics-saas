@@ -1,0 +1,151 @@
+date,campaign,revenue,spend
+2026-04-28,Google Search - Brand,28500,6200
+2026-04-28,Google Shopping,19200,6800
+2026-04-28,Meta Retargeting,24300,4100
+2026-04-28,Meta Prospecting,9800,6100
+2026-04-28,Google Display,4200,3100
+2026-04-29,Google Search - Brand,31200,6500
+2026-04-29,Google Shopping,21000,7100
+2026-04-29,Meta Retargeting,26100,4300
+2026-04-29,Meta Prospecting,10200,6400
+2026-04-29,Google Display,3900,2900
+2026-04-30,Google Search - Brand,29800,6300
+2026-04-30,Google Shopping,18700,6600
+2026-04-30,Meta Retargeting,23800,4000
+2026-04-30,Meta Prospecting,8900,5800
+2026-04-30,Google Display,4500,3200
+2026-05-01,Google Search - Brand,33500,7000
+2026-05-01,Google Shopping,22400,7400
+2026-05-01,Meta Retargeting,28900,4600
+2026-05-01,Meta Prospecting,11500,6800
+2026-05-01,Google Display,5100,3400
+2026-05-02,Google Search - Brand,35100,7200
+2026-05-02,Google Shopping,23600,7800
+2026-05-02,Meta Retargeting,30200,4900
+2026-05-02,Meta Prospecting,12100,7200
+2026-05-02,Google Display,4800,3300
+2026-05-03,Google Search - Brand,27400,5900
+2026-05-03,Google Shopping,17800,6200
+2026-05-03,Meta Retargeting,22500,3800
+2026-05-03,Meta Prospecting,8400,5500
+2026-05-03,Google Display,3600,2800
+2026-05-04,Google Search - Brand,26900,5700
+2026-05-04,Google Shopping,17200,6000
+2026-05-04,Meta Retargeting,21800,3700
+2026-05-04,Meta Prospecting,8100,5300
+2026-05-04,Google Display,3400,2700
+2026-05-05,Google Search - Brand,30100,6400
+2026-05-05,Google Shopping,20300,7000
+2026-05-05,Meta Retargeting,25600,4200
+2026-05-05,Meta Prospecting,10600,6500
+2026-05-05,Google Display,4300,3000
+2026-05-06,Google Search - Brand,32400,6800
+2026-05-06,Google Shopping,21800,7300
+2026-05-06,Meta Retargeting,27400,4500
+2026-05-06,Meta Prospecting,11200,6700
+2026-05-06,Google Display,4700,3200
+2026-05-07,Google Search - Brand,34700,7100
+2026-05-07,Google Shopping,23100,7600
+2026-05-07,Meta Retargeting,29500,4800
+2026-05-07,Meta Prospecting,11800,7000
+2026-05-07,Google Display,5000,3400
+2026-05-08,Google Search - Brand,28900,6100
+2026-05-08,Google Shopping,19500,6700
+2026-05-08,Meta Retargeting,24800,4100
+2026-05-08,Meta Prospecting,9500,6200
+2026-05-08,Google Display,4000,2900
+2026-05-09,Google Search - Brand,27600,5800
+2026-05-09,Google Shopping,18400,6400
+2026-05-09,Meta Retargeting,23200,3900
+2026-05-09,Meta Prospecting,9100,5900
+2026-05-09,Google Display,3800,2800
+2026-05-10,Google Search - Brand,31800,6600
+2026-05-10,Google Shopping,21200,7200
+2026-05-10,Meta Retargeting,26800,4400
+2026-05-10,Meta Prospecting,10900,6600
+2026-05-10,Google Display,4600,3100
+2026-05-11,Google Search - Brand,33200,6900
+2026-05-11,Google Shopping,22100,7500
+2026-05-11,Meta Retargeting,28100,4600
+2026-05-11,Meta Prospecting,11400,6900
+2026-05-11,Google Display,4900,3300
+2026-05-12,Google Search - Brand,36400,7400
+2026-05-12,Google Shopping,24500,8100
+2026-05-12,Meta Retargeting,31200,5100
+2026-05-12,Meta Prospecting,12800,7500
+2026-05-12,Google Display,5400,3600
+2026-05-13,Google Search - Brand,35800,7300
+2026-05-13,Google Shopping,23800,7900
+2026-05-13,Meta Retargeting,30500,5000
+2026-05-13,Meta Prospecting,12400,7300
+2026-05-13,Google Display,5200,3500
+2026-05-14,Google Search - Brand,29300,6200
+2026-05-14,Google Shopping,19800,6800
+2026-05-14,Meta Retargeting,25100,4200
+2026-05-14,Meta Prospecting,9700,6300
+2026-05-14,Google Display,4100,3000
+2026-05-15,Google Search - Brand,30500,6400
+2026-05-15,Google Shopping,20600,7100
+2026-05-15,Meta Retargeting,26300,4300
+2026-05-15,Meta Prospecting,10300,6500
+2026-05-15,Google Display,4400,3100
+2026-05-16,Google Search - Brand,32900,6800
+2026-05-16,Google Shopping,22200,7400
+2026-05-16,Meta Retargeting,28400,4600
+2026-05-16,Meta Prospecting,11100,6700
+2026-05-16,Google Display,4800,3200
+2026-05-17,Google Search - Brand,34100,7000
+2026-05-17,Google Shopping,23000,7700
+2026-05-17,Meta Retargeting,29800,4800
+2026-05-17,Meta Prospecting,11700,7000
+2026-05-17,Google Display,5100,3400
+2026-05-18,Google Search - Brand,36200,7300
+2026-05-18,Google Shopping,24200,8000
+2026-05-18,Meta Retargeting,31000,5000
+2026-05-18,Meta Prospecting,12600,7400
+2026-05-18,Google Display,5300,3500
+2026-05-19,Google Search - Brand,37800,7600
+2026-05-19,Google Shopping,25100,8300
+2026-05-19,Meta Retargeting,32400,5200
+2026-05-19,Meta Prospecting,13100,7700
+2026-05-19,Google Display,5600,3700
+2026-05-20,Google Search - Brand,28200,5900
+2026-05-20,Google Shopping,19000,6600
+2026-05-20,Meta Retargeting,24100,4000
+2026-05-20,Meta Prospecting,9300,6100
+2026-05-20,Google Display,3900,2800
+2026-05-21,Google Search - Brand,27800,5800
+2026-05-21,Google Shopping,18600,6500
+2026-05-21,Meta Retargeting,23500,3900
+2026-05-21,Meta Prospecting,9000,5900
+2026-05-21,Google Display,3700,2700
+2026-05-22,Google Search - Brand,31500,6600
+2026-05-22,Google Shopping,21100,7200
+2026-05-22,Meta Retargeting,27000,4400
+2026-05-22,Meta Prospecting,10800,6600
+2026-05-22,Google Display,4500,3100
+2026-05-23,Google Search - Brand,33800,7000
+2026-05-23,Google Shopping,22700,7600
+2026-05-23,Meta Retargeting,29100,4700
+2026-05-23,Meta Prospecting,11600,6900
+2026-05-23,Google Display,4900,3300
+2026-05-24,Google Search - Brand,35500,7200
+2026-05-24,Google Shopping,23900,7900
+2026-05-24,Meta Retargeting,30800,5000
+2026-05-24,Meta Prospecting,12200,7200
+2026-05-24,Google Display,5200,3500
+2026-05-25,Google Search - Brand,37200,7500
+2026-05-25,Google Shopping,24800,8200
+2026-05-25,Meta Retargeting,32000,5200
+2026-05-25,Meta Prospecting,12900,7600
+2026-05-25,Google Display,5500,3700
+2026-05-26,Google Search - Brand,38500,7800
+2026-05-26,Google Shopping,25600,8500
+2026-05-26,Meta Retargeting,33200,5400
+2026-05-26,Meta Prospecting,13400,7900
+2026-05-26,Google Display,5700,3800
+2026-05-27,Google Search - Brand,36100,7300
+2026-05-27,Google Shopping,24100,8000
+2026-05-27,Meta Retargeting,31100,5100
+2026-05-27,Meta Prospecting,12700,7500
+2026-05-27,Google Display,5400,3600
