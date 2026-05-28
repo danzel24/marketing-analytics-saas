@@ -8,34 +8,34 @@ const els = {};
 
 /**
  * getElementById with layered fallbacks for Opera extensions that strip id,
- * data-* and even class attributes from specific elements.
- * Last resort: DOM traversal from a known-good sibling element.
+ * data-* and class attributes from specific elements.
+ *
+ * Final fallback uses pure structural DOM traversal (parentElement /
+ * nextElementSibling / children[n]) — no attribute queries on the target
+ * elements at all, so extensions cannot interfere.
+ *
+ * kpi-grid child order:
+ *   0 Tržby  1 Náklady  2 Zisk  3 Ztráta  4 ROAS  5 BodZvratu  6 PNO
+ * els.kpiRoas (child of card 4) is always resolved; walk right for 5 & 6.
  */
 function findKpiEl(id) {
   const byId = document.getElementById(id);
   if (byId) return byId;
   const byData = document.querySelector(`[data-kpiid="${id}"]`);
   if (byData) return byData;
-  const byClass = {
-    kpiBreakEvenRoas: ".kpi-be-roas-val",
-    kpiPno: ".kpi-pno-val",
-    kpiPnoMeta: ".kpi-pno-meta",
-  }[id];
-  if (byClass) {
-    const el = document.querySelector(byClass);
-    if (el) return el;
-  }
-  // Ultimate fallback: traverse DOM from the ROAS card (always found)
-  // kpi-grid order: Tržby(1) Náklady(2) Zisk(3) Ztráta(4) ROAS(5) BodZvratu(6) PNO(7)
-  const roasEl = document.getElementById("kpiRoas") ?? document.querySelector(".kpi__value.roas-high, .kpi__value.roas-medium, .kpi__value.roas-low, #kpiRoas");
-  const roasCard = roasEl?.closest?.(".card");
-  if (roasCard) {
-    const beCard = roasCard.nextElementSibling;
-    const pnoCard = beCard?.nextElementSibling;
-    if (id === "kpiBreakEvenRoas") return beCard?.querySelector(".kpi__value") ?? null;
-    if (id === "kpiPno")           return pnoCard?.querySelector(".kpi__value") ?? null;
-    if (id === "kpiPnoMeta")       return pnoCard?.querySelector(".kpi__helper") ?? null;
-  }
+  const classMap = { kpiBreakEvenRoas: ".kpi-be-roas-val", kpiPno: ".kpi-pno-val", kpiPnoMeta: ".kpi-pno-meta" };
+  if (classMap[id]) { const el = document.querySelector(classMap[id]); if (el) return el; }
+
+  // Pure structural traversal — els.kpiRoas is always populated
+  const roasValEl = els.kpiRoas || document.getElementById("kpiRoas");
+  if (!roasValEl) return null;
+  // roasValEl is the .kpi__value div; its parentElement is the ROAS card
+  const roasCard = roasValEl.parentElement;
+  const beCard   = roasCard?.nextElementSibling;   // Bod zvratu card
+  const pnoCard  = beCard?.nextElementSibling;     // PNO card
+  if (id === "kpiBreakEvenRoas") return beCard   ? (beCard.children[1]  ?? null) : null;
+  if (id === "kpiPno")           return pnoCard  ? (pnoCard.children[1] ?? null) : null;
+  if (id === "kpiPnoMeta")       return pnoCard  ? (pnoCard.children[2] ?? null) : null;
   return null;
 }
 
