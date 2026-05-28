@@ -580,11 +580,11 @@ body {
 
 /* ── Primary recommendation card ───────────────────────── */
 .primary-recommendation-card {
-  margin: 0 0 10px;
-  padding: 16px 18px;
+  margin: 0 0 12px;
+  padding: 18px 20px;
   border-radius: var(--radius-sm);
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  border: 1.5px solid var(--border-strong);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.55;
@@ -601,19 +601,22 @@ body {
 }
 
 .primary-recommendation-card--danger {
-  border-color: rgba(199, 0, 21, 0.2);
+  border-color: rgba(199, 0, 21, 0.35);
   background: var(--red-muted);
+  box-shadow: 0 0 0 3px rgba(199, 0, 21, 0.06);
 }
 
 .primary-recommendation-card--warning {
-  border-color: rgba(154, 97, 0, 0.2);
+  border-color: rgba(154, 97, 0, 0.35);
   background: var(--amber-muted);
+  box-shadow: 0 0 0 3px rgba(154, 97, 0, 0.06);
 }
 
 .primary-recommendation-card__title {
-  margin: 0 0 8px;
-  font-size: 15px;
+  margin: 0 0 10px;
+  font-size: 16px;
   font-weight: 700;
+  letter-spacing: -0.2px;
   color: var(--text);
 }
 
@@ -1137,7 +1140,7 @@ body {
 }
 
 .chart-container .panel__body {
-  height: 300px;
+  height: 240px;
 }
 
 /* ── Table card ──────────────────────────────────────────── */
@@ -1190,13 +1193,13 @@ body {
 
 .table th,
 .table td {
-  padding: 12px 16px;
+  padding: 9px 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .table th {
   text-align: left;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1205,7 +1208,7 @@ body {
 }
 
 .table td {
-  font-size: 13px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   color: var(--text);
   transition: background 0.12s;
@@ -1443,18 +1446,19 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--border-strong);
-  font-size: 10px;
-  font-weight: 700;
+  background: var(--border);
+  font-size: 9px;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: help;
   vertical-align: middle;
-  margin-left: 4px;
+  margin-left: 3px;
   text-transform: none;
   letter-spacing: 0;
+  opacity: 0.7;
 }
 
 .tooltip::after {
