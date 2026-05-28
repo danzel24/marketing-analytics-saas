@@ -6,23 +6,37 @@
  * every element is queryable (observed: kpiBreakEvenRoas / kpiPno null). */
 const els = {};
 
-/** CSS-class fallback map for elements whose id/data attrs Opera extensions strip. */
-const KPI_CLASS_FALLBACK = {
-  kpiBreakEvenRoas: ".kpi-be-roas-val",
-  kpiPno: ".kpi-pno-val",
-  kpiPnoMeta: ".kpi-pno-meta",
-};
-
 /**
- * getElementById with layered fallbacks for Opera extensions that strip id and
- * data-* attributes: tries getElementById → [data-kpiid] → unique CSS class.
+ * getElementById with layered fallbacks for Opera extensions that strip id,
+ * data-* and even class attributes from specific elements.
+ * Last resort: DOM traversal from a known-good sibling element.
  */
 function findKpiEl(id) {
-  return (
-    document.getElementById(id) ??
-    document.querySelector(`[data-kpiid="${id}"]`) ??
-    (KPI_CLASS_FALLBACK[id] ? document.querySelector(KPI_CLASS_FALLBACK[id]) : null)
-  );
+  const byId = document.getElementById(id);
+  if (byId) return byId;
+  const byData = document.querySelector(`[data-kpiid="${id}"]`);
+  if (byData) return byData;
+  const byClass = {
+    kpiBreakEvenRoas: ".kpi-be-roas-val",
+    kpiPno: ".kpi-pno-val",
+    kpiPnoMeta: ".kpi-pno-meta",
+  }[id];
+  if (byClass) {
+    const el = document.querySelector(byClass);
+    if (el) return el;
+  }
+  // Ultimate fallback: traverse DOM from the ROAS card (always found)
+  // kpi-grid order: Tržby(1) Náklady(2) Zisk(3) Ztráta(4) ROAS(5) BodZvratu(6) PNO(7)
+  const roasEl = document.getElementById("kpiRoas") ?? document.querySelector(".kpi__value.roas-high, .kpi__value.roas-medium, .kpi__value.roas-low, #kpiRoas");
+  const roasCard = roasEl?.closest?.(".card");
+  if (roasCard) {
+    const beCard = roasCard.nextElementSibling;
+    const pnoCard = beCard?.nextElementSibling;
+    if (id === "kpiBreakEvenRoas") return beCard?.querySelector(".kpi__value") ?? null;
+    if (id === "kpiPno")           return pnoCard?.querySelector(".kpi__value") ?? null;
+    if (id === "kpiPnoMeta")       return pnoCard?.querySelector(".kpi__helper") ?? null;
+  }
+  return null;
 }
 
 let charts = { revenue: null, spend: null, profit: null, roas: null };
