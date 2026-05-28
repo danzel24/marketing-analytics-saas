@@ -1572,11 +1572,6 @@ function handleLogout() {
 
 /* ── Init ───────────────────────────────────────────────── */
 
-els.logoutBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  handleLogout();
-});
-
 function applyDaysFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -1644,6 +1639,12 @@ window.addEventListener("load", async () => {
     marginSaveStatus: document.getElementById("marginSaveStatus"),
   });
 
+  if (els.logoutBtn) {
+    els.logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleLogout();
+    });
+  }
   initFilterBar();
   initMarginBar();
   applyDaysFromUrl();
