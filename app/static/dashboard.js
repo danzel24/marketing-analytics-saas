@@ -1406,10 +1406,14 @@ async function loadDashboard() {
   setStatus("Načítám dashboard…", "info");
   els.dashboardSection.style.opacity = "0.92";
   try {
-    const [data, insightsData] = await Promise.all([
+    const [data, insightsRaw] = await Promise.all([
       fetchJson(`/api/v1/dashboard/full?days=${selectedDays}`),
-      fetchJson(`/api/v1/dashboard/insights?days=${selectedDays}`),
+      fetchJson(`/api/v1/dashboard/insights?days=${selectedDays}`).catch((err) => {
+        console.warn("Insights fetch failed (non-fatal):", err);
+        return { insights: [] };
+      }),
     ]);
+    const insightsData = insightsRaw ?? { insights: [] };
     const scenarioProfits = extractScenarioProfits(data);
 
     const be = data?.overview?.break_even_roas;
@@ -1484,6 +1488,7 @@ async function loadDashboard() {
     }
     setStatus("", "success");
   } catch (e) {
+    console.error("Dashboard load error:", e);
     destroyCharts();
     resetDashboardUi();
     const message = String(e.message || e || "");
