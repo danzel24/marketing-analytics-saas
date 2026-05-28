@@ -714,6 +714,7 @@ function renderKpis(overview, lossSummary) {
   const beRaw = Number(overview.break_even_roas);
   const beDisplay = Number.isFinite(beRaw) && beRaw > 0 ? beRaw : null;
   const kpiBreakEvenEl = els.kpiBreakEvenRoas ?? document.getElementById("kpiBreakEvenRoas");
+  console.log("[KPI] kpiBreakEvenRoas el:", kpiBreakEvenEl, "| break_even_roas:", overview.break_even_roas, "| beDisplay:", beDisplay);
   if (kpiBreakEvenEl) kpiBreakEvenEl.textContent = beDisplay === null ? "—" : roasFmt(beDisplay);
 
   const avg = toFiniteNumber(overview.average_roas);
@@ -766,6 +767,7 @@ function renderKpis(overview, lossSummary) {
 
   const kpiPnoEl = els.kpiPno ?? document.getElementById("kpiPno");
   const kpiPnoMetaEl = els.kpiPnoMeta ?? document.getElementById("kpiPnoMeta");
+  console.log("[KPI] kpiPno el:", kpiPnoEl, "| pno:", overview.pno);
   if (kpiPnoEl) {
     const pnoVal = toFiniteNumber(overview.pno);
     const bePno = toFiniteNumber(overview.breakeven_pno ?? (Number(overview.margin ?? overview.margin_used) * 100));
