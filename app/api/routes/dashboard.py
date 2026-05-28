@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
 from app.core.config import get_settings
@@ -70,6 +70,22 @@ def account_page(request: Request) -> HTMLResponse:
 @router.get("/channel-overview", response_class=HTMLResponse)
 def channel_overview_page(request: Request) -> HTMLResponse:
     return template_response(request=request, name="channel_overview.html")
+
+
+@router.get("/settings")
+def settings_redirect() -> RedirectResponse:
+    """Redirect legacy /settings URL to /account."""
+    return RedirectResponse(url="/account", status_code=301)
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request) -> HTMLResponse:
+    return template_response(request=request, name="privacy.html")
+
+
+@router.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request) -> HTMLResponse:
+    return template_response(request=request, name="terms.html")
 
 
 @router.get("/api/v1/dashboard/overview")

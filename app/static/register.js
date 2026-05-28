@@ -85,5 +85,15 @@
     confirmPassword.addEventListener("keydown", (e) => {
       if (e.key === "Enter") submit();
     });
+    // REG-2: clear "Hesla se neshodují" as soon as user starts re-typing
+    confirmPassword.addEventListener("input", () => {
+      if (confirmErr) confirmErr.textContent = "";
+    });
+  }
+  if (password) {
+    password.addEventListener("input", () => {
+      if (passwordErr) passwordErr.textContent = "";
+      if (confirmErr) confirmErr.textContent = "";
+    });
   }
 })();

@@ -1503,16 +1503,15 @@ async function loadDashboard() {
 function resetDashboardUi() {
   resetChartsSection();
   resetOnboardingInsight();
-  els.tbody.innerHTML = "";
-  els.kpiRevenue.textContent = "—";
-  els.kpiSpend.textContent = "—";
-  els.kpiProfit.textContent = "—";
-  els.kpiRoas.textContent = "—";
-  els.kpiRoasMeta.innerHTML = "";
-  els.kpiBreakEvenRoas.textContent = "—";
-  els.kpiLoss.textContent = "—";
-  els.kpiLoss.style.color = "";
-  els.kpiLossMeta.textContent = "";
+  if (els.tbody) els.tbody.innerHTML = "";
+  if (els.kpiRevenue) els.kpiRevenue.textContent = "—";
+  if (els.kpiSpend) els.kpiSpend.textContent = "—";
+  if (els.kpiProfit) els.kpiProfit.textContent = "—";
+  if (els.kpiRoas) els.kpiRoas.textContent = "—";
+  if (els.kpiRoasMeta) els.kpiRoasMeta.innerHTML = "";
+  if (els.kpiBreakEvenRoas) els.kpiBreakEvenRoas.textContent = "—";
+  if (els.kpiLoss) { els.kpiLoss.textContent = "—"; els.kpiLoss.style.color = ""; }
+  if (els.kpiLossMeta) els.kpiLossMeta.textContent = "";
   if (els.kpiPno) { els.kpiPno.textContent = "—"; els.kpiPno.classList.remove("roas-high", "roas-medium", "roas-low"); }
   if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = "";
   els.insightsList.innerHTML = "";
