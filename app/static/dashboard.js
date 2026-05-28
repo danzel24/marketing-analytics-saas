@@ -1676,34 +1676,30 @@ window.addEventListener("load", async () => {
   });
 
   /* Restore CSS classes stripped by Opera extensions on the last two KPI cards.
-   * Extensions strip id/data-*/class attributes; adding them back via JS after
-   * load is safe — extensions don't re-strip dynamically added classes. */
-  (function restoreKpiCardClasses() {
-    const roasValEl = els.kpiRoas || document.getElementById("kpiRoas");
-    if (!roasValEl) return;
-    const roasCard = roasValEl.parentElement;
-    const kpiGrid  = roasCard?.parentElement;
-    const beCard   = roasCard?.nextElementSibling;
-    const pnoCard  = beCard?.nextElementSibling;
-    // If Opera physically moved pnoCard outside the grid, put it back
-    if (kpiGrid && pnoCard && pnoCard.parentElement !== kpiGrid) {
-      kpiGrid.appendChild(pnoCard);
+   * Wrapped in try-catch so any unexpected error never blocks loadDashboard(). */
+  try {
+    const _roasEl = els.kpiRoas || document.getElementById("kpiRoas");
+    if (_roasEl) {
+      const _roasCard = _roasEl.parentElement;
+      const _kpiGrid  = _roasCard && _roasCard.parentElement;
+      const _beCard   = _roasCard && _roasCard.nextElementSibling;
+      const _pnoCard  = _beCard && _beCard.nextElementSibling;
+      if (_kpiGrid && _pnoCard && _pnoCard.parentElement !== _kpiGrid) {
+        _kpiGrid.appendChild(_pnoCard);
+      }
+      [_beCard, _pnoCard].forEach((c) => {
+        if (!c) return;
+        if (!c.classList.contains("card")) c.classList.add("card");
+        if (!c.classList.contains("kpi"))  c.classList.add("kpi");
+      });
+      const _beVal = _beCard && _beCard.children[1];
+      if (_beVal && !_beVal.classList.contains("kpi__value")) _beVal.classList.add("kpi__value");
+      const _pnoVal = _pnoCard && _pnoCard.children[1];
+      if (_pnoVal && !_pnoVal.classList.contains("kpi__value")) _pnoVal.classList.add("kpi__value");
+      const _pnoMeta = _pnoCard && _pnoCard.children[2];
+      if (_pnoMeta && !_pnoMeta.classList.contains("kpi__helper")) _pnoMeta.classList.add("kpi__helper");
     }
-    // Restore card + kpi classes so the box / padding styling applies
-    [beCard, pnoCard].forEach((card) => {
-      if (!card) return;
-      if (!card.classList.contains("card"))  card.classList.add("card");
-      if (!card.classList.contains("kpi"))   card.classList.add("kpi");
-    });
-    // Restore kpi__value class on value divs (children[1] of each card)
-    const beVal  = beCard?.children[1];
-    const pnoVal = pnoCard?.children[1];
-    if (beVal  && !beVal.classList.contains("kpi__value"))  beVal.classList.add("kpi__value");
-    if (pnoVal && !pnoVal.classList.contains("kpi__value")) pnoVal.classList.add("kpi__value");
-    // Restore kpi__helper on PNO meta (children[2])
-    const pnoMeta = pnoCard?.children[2];
-    if (pnoMeta && !pnoMeta.classList.contains("kpi__helper")) pnoMeta.classList.add("kpi__helper");
-  })();
+  } catch (_e) { /* never block the rest of init */ }
 
   if (els.logoutBtn) {
     els.logoutBtn.addEventListener("click", (e) => {
