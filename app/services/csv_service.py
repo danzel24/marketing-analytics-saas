@@ -35,6 +35,10 @@ class CSVService:
     ) -> None:
         self.campaign_repo = campaign_repo
         self.metric_repo = metric_repo
+        # Per-request in-memory caches — each request creates a fresh CSVService
+        # instance, so these caches are safe and never cross tenant boundaries.
+        self._campaign_name_to_id_cache: dict[tuple[int, str], int | None] = {}
+        self._default_campaign_cache: dict[int, "Campaign"] = {}
 
     @staticmethod
     def _require_tenant_client_id(client_id: int) -> int:
@@ -313,8 +317,22 @@ class CSVService:
         client_id: int,
         errors: list[dict[str, object]],
     ) -> tuple[int, int]:
-        imported = 0
-        updated = 0
+        if not rows:
+            return 0, 0
+
+        # Collect campaign IDs that will be touched (already tenant-validated in _parse_row).
+        campaign_ids: set[int] = {
+            int(r["campaign_id"]) for r in rows if isinstance(r.get("campaign_id"), int)
+        }
+
+        # One bulk SELECT instead of one query per row.
+        existing_metrics = self.metric_repo.list_metrics_for_campaign_ids_for_client(
+            client_id, campaign_ids
+        )
+        existing_map: dict[tuple[int, date], CampaignMetric] = {
+            (int(m.campaign_id), m.metric_date): m for m in existing_metrics
+        }
+
         to_create: list[CampaignMetric] = []
         to_update: list[CampaignMetric] = []
 
@@ -328,40 +346,45 @@ class CSVService:
                 errors.append({"row": index, "reason": "Nevalidní normalizovaná data.", "data": row})
                 continue
 
-            campaign = self.campaign_repo.get_by_id_for_client(campaign_id, client_id)
-            if campaign is None:
-                errors.append({"row": index, "reason": "Kampaň nepatří aktuálnímu klientovi.", "data": row})
-                continue
-
-            existing_metric = self.metric_repo.get_by_campaign_and_date_for_client(
-                client_id, campaign_id, metric_date
-            )
-            if existing_metric:
-                existing_metric.revenue = float(revenue)
-                existing_metric.spend = float(spend)
-                to_update.append(existing_metric)
-                continue
-
-            to_create.append(
-                CampaignMetric(
-                    campaign_id=campaign_id,
-                    metric_date=metric_date,
-                    revenue=float(revenue),
-                    spend=float(spend),
-                    clicks=0,
-                    conversions=0,
+            key = (campaign_id, metric_date)
+            existing = existing_map.get(key)
+            if existing is not None:
+                existing.revenue = float(revenue)
+                existing.spend = float(spend)
+                to_update.append(existing)
+            else:
+                to_create.append(
+                    CampaignMetric(
+                        campaign_id=campaign_id,
+                        metric_date=metric_date,
+                        revenue=float(revenue),
+                        spend=float(spend),
+                        clicks=0,
+                        conversions=0,
+                    )
                 )
-            )
 
-        updated += self.metric_repo.save_many_for_client(client_id, to_update)
+        session = self.metric_repo.session
+
+        # Commit updates first (objects are already tenant-scoped via the bulk SELECT above).
+        updated = 0
+        if to_update:
+            session.add_all(to_update)
+            session.commit()
+            updated = len(to_update)
+
+        # bulk_create validates tenant scope for new rows then inserts in one shot.
+        imported = 0
         try:
-            imported += self.metric_repo.bulk_create_for_client(client_id, to_create)
+            if to_create:
+                imported = self.metric_repo.bulk_create_for_client(client_id, to_create)
         except IntegrityError:
-            self.metric_repo.session.rollback()
+            session.rollback()
             logger.warning(
                 "CSV bulk_create hit integrity constraint (possible duplicate campaign_id+date); retrying row-wise",
             )
-            imported += self._bulk_create_metrics_fallback(to_create, client_id=client_id)
+            imported = self._bulk_create_metrics_fallback(to_create, client_id=client_id)
+
         return imported, updated
 
     def _bulk_create_metrics_fallback(
@@ -748,11 +771,18 @@ class CSVService:
             default_campaign = self.get_or_create_default_campaign(client_id)
             return default_campaign.id
 
+        cache_key = (client_id, campaign_name)
+        if cache_key in self._campaign_name_to_id_cache:
+            return self._campaign_name_to_id_cache[cache_key]
+
         existing = self.campaign_repo.get_by_name_and_platform(client_id, campaign_name, "imported")
         if existing:
+            self._campaign_name_to_id_cache[cache_key] = existing.id
             return existing.id
 
-        return self._create_named_import_campaign_or_get_existing(campaign_name, client_id)
+        result = self._create_named_import_campaign_or_get_existing(campaign_name, client_id)
+        self._campaign_name_to_id_cache[cache_key] = result
+        return result
 
     def _create_named_import_campaign_or_get_existing(self, campaign_name: str, client_id: int) -> int | None:
         """
@@ -799,19 +829,23 @@ class CSVService:
         return default_campaign.id, None
 
     def get_or_create_default_campaign(self, client_id: int) -> Campaign:
+        cached = self._default_campaign_cache.get(client_id)
+        if cached is not None:
+            return cached
         campaign = self.campaign_repo.get_by_name_and_platform(
             client_id, DEFAULT_IMPORT_CAMPAIGN_NAME, "imported"
         )
-        if campaign:
-            return campaign
-        return self.campaign_repo.create_for_client(
-            client_id,
-            Campaign(
-                name=DEFAULT_IMPORT_CAMPAIGN_NAME,
-                platform="imported",
-                client_id=client_id,
-            ),
-        )
+        if not campaign:
+            campaign = self.campaign_repo.create_for_client(
+                client_id,
+                Campaign(
+                    name=DEFAULT_IMPORT_CAMPAIGN_NAME,
+                    platform="imported",
+                    client_id=client_id,
+                ),
+            )
+        self._default_campaign_cache[client_id] = campaign
+        return campaign
 
     @staticmethod
     def _normalize_header(h: str) -> str:
