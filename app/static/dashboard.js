@@ -713,8 +713,8 @@ function renderActionBoxToday(items, primaryRec) {
 }
 
 function renderKpis(overview, lossSummary) {
-  els.kpiRevenue.textContent = money(overview.total_revenue);
-  els.kpiSpend.textContent = money(overview.total_spend);
+  if (els.kpiRevenue) els.kpiRevenue.textContent = money(overview.total_revenue);
+  if (els.kpiSpend) els.kpiSpend.textContent = money(overview.total_spend);
 
   const marginPct = Number(overview.margin ?? overview.margin_used);
   if (els.kpiProfitLabel) {
@@ -729,18 +729,20 @@ function renderKpis(overview, lossSummary) {
   const profit = toFiniteNumber(
     overview.total_marketing_profit ?? overview.total_profit
   );
-  els.kpiProfit.textContent = signedMoney(profit);
-  els.kpiProfit.style.color = "";
-  els.kpiProfit.classList.remove("kpi__value--loss-hero", "kpi__value--gain-hero");
+  if (els.kpiProfit) {
+    els.kpiProfit.textContent = signedMoney(profit);
+    els.kpiProfit.style.color = "";
+    els.kpiProfit.classList.remove("kpi__value--loss-hero", "kpi__value--gain-hero");
+  }
   if (els.kpiProfitImpact) {
     if (profit < 0) {
       els.kpiProfitImpact.textContent = "ZTRÁCÍTE";
       els.kpiProfitImpact.className = "kpi-profit-impact kpi-profit-impact--loss";
-      els.kpiProfit.classList.add("kpi__value--loss-hero");
+      if (els.kpiProfit) els.kpiProfit.classList.add("kpi__value--loss-hero");
     } else if (profit > 0) {
       els.kpiProfitImpact.textContent = "VYDĚLÁVÁTE";
       els.kpiProfitImpact.className = "kpi-profit-impact kpi-profit-impact--gain";
-      els.kpiProfit.classList.add("kpi__value--gain-hero");
+      if (els.kpiProfit) els.kpiProfit.classList.add("kpi__value--gain-hero");
     } else {
       els.kpiProfitImpact.textContent = "";
       els.kpiProfitImpact.className = "kpi-profit-impact";
@@ -749,16 +751,18 @@ function renderKpis(overview, lossSummary) {
 
   const beRaw = Number(overview.break_even_roas);
   const beDisplay = Number.isFinite(beRaw) && beRaw > 0 ? beRaw : null;
-  els.kpiBreakEvenRoas.textContent = beDisplay === null ? "—" : roasFmt(beDisplay);
+  if (els.kpiBreakEvenRoas) els.kpiBreakEvenRoas.textContent = beDisplay === null ? "—" : roasFmt(beDisplay);
 
   const avg = toFiniteNumber(overview.average_roas);
   const be = toFiniteNumber(overview.break_even_roas ?? 2.5);
   const band = String(overview.average_roas_status || "");
   const cls = roasKpiClassFromApiStatus(band);
 
-  els.kpiRoas.classList.remove("roas-high", "roas-medium", "roas-low");
-  els.kpiRoas.classList.add(cls);
-  els.kpiRoas.textContent = roasFmt(avg);
+  if (els.kpiRoas) {
+    els.kpiRoas.classList.remove("roas-high", "roas-medium", "roas-low");
+    els.kpiRoas.classList.add(cls);
+    els.kpiRoas.textContent = roasFmt(avg);
+  }
 
   let badgeClass;
   let badgeLabel;
@@ -776,18 +780,25 @@ function renderKpis(overview, lossSummary) {
     badgeLabel = "Mírně pod BE";
   }
   const roasInfo = `<span id="roasInfo" class="kpi__helper">Bod zvratu: ${beDisplay === null ? "—" : roasFmt(beDisplay)}</span>`;
-  els.kpiRoasMeta.innerHTML = `<span class="kpi__badge ${badgeClass}">${badgeLabel}</span>${roasInfo}`;
+  if (els.kpiRoasMeta) els.kpiRoasMeta.innerHTML = `<span class="kpi__badge ${badgeClass}">${badgeLabel}</span>${roasInfo}`;
 
   const totalLoss = toFiniteNumber(lossSummary?.total_loss);
   const lossCount = toFiniteNumber(lossSummary?.loss_count);
-  els.kpiLoss.style.color = "";
-  if (lossCount > 0) {
-    els.kpiLoss.textContent = absMoney(totalLoss);
-    els.kpiLossMeta.textContent = `${lossCount} kampan${lossCount === 1 ? "ě" : lossCount < 5 ? "ě" : "í"} pod bodem zvratu`;
-  } else {
-    els.kpiLoss.textContent = "0 Kč";
-    els.kpiLoss.style.color = "var(--green)";
-    els.kpiLossMeta.textContent = lossSummary?.message || "Žádné kampaně pod bodem zvratu";
+  if (els.kpiLoss) {
+    els.kpiLoss.style.color = "";
+    if (lossCount > 0) {
+      els.kpiLoss.textContent = absMoney(totalLoss);
+    } else {
+      els.kpiLoss.textContent = "0 Kč";
+      els.kpiLoss.style.color = "var(--green)";
+    }
+  }
+  if (els.kpiLossMeta) {
+    if (lossCount > 0) {
+      els.kpiLossMeta.textContent = `${lossCount} kampan${lossCount === 1 ? "ě" : lossCount < 5 ? "ě" : "í"} pod bodem zvratu`;
+    } else {
+      els.kpiLossMeta.textContent = lossSummary?.message || "Žádné kampaně pod bodem zvratu";
+    }
   }
 
   if (els.kpiPno) {
