@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/static/styles.css?v=2" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script defer src="/static/common.js?v=4"></script>
-    <script defer src="/static/dashboard.js?v=11"></script>
+    <script defer src="/static/dashboard.js?v=12"></script>
   </head>
   <body>
     <header class="topbar">
@@ -141,12 +141,12 @@
         </div>
         <div class=”card kpi”>
           <div class=”kpi__label”>Bod zvratu (ROAS) <span class=”tooltip” data-tip=”Nejnižší ROAS, kde je příspěvek po marži v nule: 1 ÷ marže (viz „Použitá marže”).”>?</span></div>
-          <div id=”kpiBreakEvenRoas” data-kpiid=”kpiBreakEvenRoas” class=”kpi__value”>—</div>
+          <div id=”kpiBreakEvenRoas” data-kpiid=”kpiBreakEvenRoas” class=”kpi__value kpi-be-roas-val”>—</div>
         </div>
         <div class=”card kpi”>
           <div class=”kpi__label”>PNO <span class=”tooltip” data-tip=”Podíl nákladů na obratu: náklady ÷ tržby × 100 %. Nižší je lepší — bod zvratu = marže × 100 %.”>?</span></div>
-          <div id=”kpiPno” data-kpiid=”kpiPno” class=”kpi__value”>—</div>
-          <div id=”kpiPnoMeta” data-kpiid=”kpiPnoMeta” class=”kpi__helper”></div>
+          <div id=”kpiPno” data-kpiid=”kpiPno” class=”kpi__value kpi-pno-val”>—</div>
+          <div id=”kpiPnoMeta” data-kpiid=”kpiPnoMeta” class=”kpi__helper kpi-pno-meta”></div>
         </div>
       </section>
       <div id="kpiPeriodComparison" class="kpi-period-comparison-wrap hidden" aria-live="polite"></div>

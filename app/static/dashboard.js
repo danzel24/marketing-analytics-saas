@@ -6,13 +6,23 @@
  * every element is queryable (observed: kpiBreakEvenRoas / kpiPno null). */
 const els = {};
 
+/** CSS-class fallback map for elements whose id/data attrs Opera extensions strip. */
+const KPI_CLASS_FALLBACK = {
+  kpiBreakEvenRoas: ".kpi-be-roas-val",
+  kpiPno: ".kpi-pno-val",
+  kpiPnoMeta: ".kpi-pno-meta",
+};
+
 /**
- * getElementById with data-kpiid fallback — some Opera extensions strip id
- * attributes from specific elements. The HTML includes data-kpiid="..." on
- * affected KPI value divs so we can always find them.
+ * getElementById with layered fallbacks for Opera extensions that strip id and
+ * data-* attributes: tries getElementById → [data-kpiid] → unique CSS class.
  */
 function findKpiEl(id) {
-  return document.getElementById(id) ?? document.querySelector(`[data-kpiid="${id}"]`);
+  return (
+    document.getElementById(id) ??
+    document.querySelector(`[data-kpiid="${id}"]`) ??
+    (KPI_CLASS_FALLBACK[id] ? document.querySelector(KPI_CLASS_FALLBACK[id]) : null)
+  );
 }
 
 let charts = { revenue: null, spend: null, profit: null, roas: null };
