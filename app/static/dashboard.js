@@ -6,6 +6,15 @@
  * every element is queryable (observed: kpiBreakEvenRoas / kpiPno null). */
 const els = {};
 
+/**
+ * getElementById with data-kpiid fallback — some Opera extensions strip id
+ * attributes from specific elements. The HTML includes data-kpiid="..." on
+ * affected KPI value divs so we can always find them.
+ */
+function findKpiEl(id) {
+  return document.getElementById(id) ?? document.querySelector(`[data-kpiid="${id}"]`);
+}
+
 let charts = { revenue: null, spend: null, profit: null, roas: null };
 let selectedDays = 30;
 
@@ -713,8 +722,7 @@ function renderKpis(overview, lossSummary) {
 
   const beRaw = Number(overview.break_even_roas);
   const beDisplay = Number.isFinite(beRaw) && beRaw > 0 ? beRaw : null;
-  const kpiBreakEvenEl = els.kpiBreakEvenRoas ?? document.getElementById("kpiBreakEvenRoas");
-  console.log("[KPI] kpiBreakEvenRoas el:", kpiBreakEvenEl, "| break_even_roas:", overview.break_even_roas, "| beDisplay:", beDisplay);
+  const kpiBreakEvenEl = els.kpiBreakEvenRoas ?? findKpiEl("kpiBreakEvenRoas");
   if (kpiBreakEvenEl) kpiBreakEvenEl.textContent = beDisplay === null ? "—" : roasFmt(beDisplay);
 
   const avg = toFiniteNumber(overview.average_roas);
@@ -765,9 +773,8 @@ function renderKpis(overview, lossSummary) {
     }
   }
 
-  const kpiPnoEl = els.kpiPno ?? document.getElementById("kpiPno");
-  const kpiPnoMetaEl = els.kpiPnoMeta ?? document.getElementById("kpiPnoMeta");
-  console.log("[KPI] kpiPno el:", kpiPnoEl, "| pno:", overview.pno);
+  const kpiPnoEl = els.kpiPno ?? findKpiEl("kpiPno");
+  const kpiPnoMetaEl = els.kpiPnoMeta ?? findKpiEl("kpiPnoMeta");
   if (kpiPnoEl) {
     const pnoVal = toFiniteNumber(overview.pno);
     const bePno = toFiniteNumber(overview.breakeven_pno ?? (Number(overview.margin ?? overview.margin_used) * 100));
@@ -1492,11 +1499,14 @@ function resetDashboardUi() {
   if (els.kpiProfit) els.kpiProfit.textContent = "—";
   if (els.kpiRoas) els.kpiRoas.textContent = "—";
   if (els.kpiRoasMeta) els.kpiRoasMeta.innerHTML = "";
-  if (els.kpiBreakEvenRoas) els.kpiBreakEvenRoas.textContent = "—";
+  const _beEl = els.kpiBreakEvenRoas ?? findKpiEl("kpiBreakEvenRoas");
+  if (_beEl) _beEl.textContent = "—";
   if (els.kpiLoss) { els.kpiLoss.textContent = "—"; els.kpiLoss.style.color = ""; }
   if (els.kpiLossMeta) els.kpiLossMeta.textContent = "";
-  if (els.kpiPno) { els.kpiPno.textContent = "—"; els.kpiPno.classList.remove("roas-high", "roas-medium", "roas-low"); }
-  if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = "";
+  const _pnoEl = els.kpiPno ?? findKpiEl("kpiPno");
+  if (_pnoEl) { _pnoEl.textContent = "—"; _pnoEl.classList.remove("roas-high", "roas-medium", "roas-low"); }
+  const _pnoMetaEl = els.kpiPnoMeta ?? findKpiEl("kpiPnoMeta");
+  if (_pnoMetaEl) _pnoMetaEl.textContent = "";
   els.insightsList.innerHTML = "";
   if (els.actionBoxToday) els.actionBoxToday.classList.add("hidden");
   if (els.actionBoxTodayList) els.actionBoxTodayList.innerHTML = "";
