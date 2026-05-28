@@ -1,48 +1,10 @@
 /* global Chart */
 
-const els = {
-  dashboardSection: document.getElementById("dashboardSection"),
-  logoutBtn: document.getElementById("logoutBtn"),
-  adminBtn: document.getElementById("admin-btn"),
-
-  status: document.getElementById("status"),
-  kpiRevenue: document.getElementById("kpiRevenue"),
-  kpiSpend: document.getElementById("kpiSpend"),
-  kpiProfit: document.getElementById("kpiProfit"),
-  kpiRoas: document.getElementById("kpiRoas"),
-  kpiRoasMeta: document.getElementById("kpiRoasMeta"),
-  kpiBreakEvenRoas: document.getElementById("kpiBreakEvenRoas"),
-  marginInfo: document.getElementById("marginInfo"),
-  marginFallbackInfo: document.getElementById("marginFallbackInfo"),
-  kpiLoss: document.getElementById("kpiLoss"),
-  kpiLossMeta: document.getElementById("kpiLossMeta"),
-  kpiLossCard: document.getElementById("kpiLossCard"),
-  kpiPno: document.getElementById("kpiPno"),
-  kpiPnoMeta: document.getElementById("kpiPnoMeta"),
-  headlineBanner: document.getElementById("headlineBanner"),
-  headlineText: document.getElementById("headlineText"),
-  riskBanner: document.getElementById("riskBanner"),
-  riskBannerText: document.getElementById("riskBannerText"),
-  riskBannerSub: document.getElementById("riskBannerSub"),
-  primaryAction: document.getElementById("primaryAction"),
-  insightsList: document.getElementById("insightsList"),
-  actionBoxToday: document.getElementById("actionBoxToday"),
-  actionBoxTodayList: document.getElementById("actionBoxTodayList"),
-  primaryRecommendationCard: document.getElementById("primaryRecommendationCard"),
-  kpiProfitImpact: document.getElementById("kpiProfitImpact"),
-  kpiProfitLabel: document.getElementById("kpiProfitLabel"),
-  dataTrustStrip: document.getElementById("dataTrustStrip"),
-  dataTrustWindow: document.getElementById("dataTrustWindow"),
-  dataTrustSources: document.getElementById("dataTrustSources"),
-  dataTrustUpdated: document.getElementById("dataTrustUpdated"),
-  kpiTrustMicrocopy: document.getElementById("kpiTrustMicrocopy"),
-  tbody: document.getElementById("campaignTbody"),
-  revenueCanvas: document.getElementById("revenueChart"),
-  spendCanvas: document.getElementById("spendChart"),
-  marginPercentInput: document.getElementById("marginPercentInput"),
-  marginApplyBtn: document.getElementById("marginApplyBtn"),
-  marginSaveStatus: document.getElementById("marginSaveStatus"),
-};
+/* els is populated inside window.load (see bottom of file) so that all
+ * getElementById calls happen after the DOM is fully ready — avoids a
+ * timing issue in some browsers where deferred-script init runs before
+ * every element is queryable (observed: kpiBreakEvenRoas / kpiPno null). */
+const els = {};
 
 let charts = { revenue: null, spend: null, profit: null, roas: null };
 let selectedDays = 30;
@@ -1638,6 +1600,50 @@ function applyDaysFromUrl() {
 }
 
 window.addEventListener("load", async () => {
+  /* Populate els here — DOM is guaranteed complete at window.load time. */
+  Object.assign(els, {
+    dashboardSection: document.getElementById("dashboardSection"),
+    logoutBtn: document.getElementById("logoutBtn"),
+    adminBtn: document.getElementById("admin-btn"),
+    status: document.getElementById("status"),
+    kpiRevenue: document.getElementById("kpiRevenue"),
+    kpiSpend: document.getElementById("kpiSpend"),
+    kpiProfit: document.getElementById("kpiProfit"),
+    kpiRoas: document.getElementById("kpiRoas"),
+    kpiRoasMeta: document.getElementById("kpiRoasMeta"),
+    kpiBreakEvenRoas: document.getElementById("kpiBreakEvenRoas"),
+    marginInfo: document.getElementById("marginInfo"),
+    marginFallbackInfo: document.getElementById("marginFallbackInfo"),
+    kpiLoss: document.getElementById("kpiLoss"),
+    kpiLossMeta: document.getElementById("kpiLossMeta"),
+    kpiLossCard: document.getElementById("kpiLossCard"),
+    kpiPno: document.getElementById("kpiPno"),
+    kpiPnoMeta: document.getElementById("kpiPnoMeta"),
+    headlineBanner: document.getElementById("headlineBanner"),
+    headlineText: document.getElementById("headlineText"),
+    riskBanner: document.getElementById("riskBanner"),
+    riskBannerText: document.getElementById("riskBannerText"),
+    riskBannerSub: document.getElementById("riskBannerSub"),
+    primaryAction: document.getElementById("primaryAction"),
+    insightsList: document.getElementById("insightsList"),
+    actionBoxToday: document.getElementById("actionBoxToday"),
+    actionBoxTodayList: document.getElementById("actionBoxTodayList"),
+    primaryRecommendationCard: document.getElementById("primaryRecommendationCard"),
+    kpiProfitImpact: document.getElementById("kpiProfitImpact"),
+    kpiProfitLabel: document.getElementById("kpiProfitLabel"),
+    dataTrustStrip: document.getElementById("dataTrustStrip"),
+    dataTrustWindow: document.getElementById("dataTrustWindow"),
+    dataTrustSources: document.getElementById("dataTrustSources"),
+    dataTrustUpdated: document.getElementById("dataTrustUpdated"),
+    kpiTrustMicrocopy: document.getElementById("kpiTrustMicrocopy"),
+    tbody: document.getElementById("campaignTbody"),
+    revenueCanvas: document.getElementById("revenueChart"),
+    spendCanvas: document.getElementById("spendChart"),
+    marginPercentInput: document.getElementById("marginPercentInput"),
+    marginApplyBtn: document.getElementById("marginApplyBtn"),
+    marginSaveStatus: document.getElementById("marginSaveStatus"),
+  });
+
   initFilterBar();
   initMarginBar();
   applyDaysFromUrl();
