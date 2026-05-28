@@ -1724,6 +1724,7 @@ class MarketingService:
             "revenue_trend": revenue_trend,
             "spend_trend": spend_trend,
             "profit_trend": profit_trend,
+            "roas_trend": roas_trend,
             "top_campaigns": top_campaigns,
             "campaign_table": campaign_table,
             "daily_recommendations": daily_recommendations,

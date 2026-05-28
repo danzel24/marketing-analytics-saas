@@ -48,8 +48,8 @@ let charts = { revenue: null, spend: null, profit: null, roas: null };
 let selectedDays = 30;
 
 const chartDefaults = {
-  color: "rgba(255,255,255,0.5)",
-  borderColor: "rgba(255,255,255,0.08)",
+  color: "rgba(51,65,85,0.75)",
+  borderColor: "rgba(51,65,85,0.15)",
 };
 
 Chart.defaults.color = chartDefaults.color;
@@ -1129,7 +1129,7 @@ function makeChartOptions(tooltipLineFormatter) {
         grid: { display: false },
         ticks: {
           font: { size: 10 },
-          color: "rgba(255,255,255,0.4)",
+          color: "rgba(51,65,85,0.65)",
           maxRotation: 0,
           autoSkip: true,
           maxTicksLimit: 12,
@@ -1144,8 +1144,8 @@ function makeChartOptions(tooltipLineFormatter) {
       },
       y: {
         beginAtZero: true,
-        grid: { color: "rgba(255,255,255,0.06)" },
-        ticks: { font: { size: 11 }, color: "rgba(255,255,255,0.4)" },
+        grid: { color: "rgba(51,65,85,0.08)" },
+        ticks: { font: { size: 11 }, color: "rgba(51,65,85,0.65)" },
       },
     },
   };
