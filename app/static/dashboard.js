@@ -751,7 +751,8 @@ function renderKpis(overview, lossSummary) {
 
   const beRaw = Number(overview.break_even_roas);
   const beDisplay = Number.isFinite(beRaw) && beRaw > 0 ? beRaw : null;
-  if (els.kpiBreakEvenRoas) els.kpiBreakEvenRoas.textContent = beDisplay === null ? "—" : roasFmt(beDisplay);
+  const kpiBreakEvenEl = els.kpiBreakEvenRoas ?? document.getElementById("kpiBreakEvenRoas");
+  if (kpiBreakEvenEl) kpiBreakEvenEl.textContent = beDisplay === null ? "—" : roasFmt(beDisplay);
 
   const avg = toFiniteNumber(overview.average_roas);
   const be = toFiniteNumber(overview.break_even_roas ?? 2.5);
@@ -801,22 +802,24 @@ function renderKpis(overview, lossSummary) {
     }
   }
 
-  if (els.kpiPno) {
+  const kpiPnoEl = els.kpiPno ?? document.getElementById("kpiPno");
+  const kpiPnoMetaEl = els.kpiPnoMeta ?? document.getElementById("kpiPnoMeta");
+  if (kpiPnoEl) {
     const pnoVal = toFiniteNumber(overview.pno);
     const bePno = toFiniteNumber(overview.breakeven_pno ?? (Number(overview.margin ?? overview.margin_used) * 100));
-    els.kpiPno.classList.remove("roas-high", "roas-medium", "roas-low");
+    kpiPnoEl.classList.remove("roas-high", "roas-medium", "roas-low");
     if (pnoVal > 0 && bePno > 0) {
       if (pnoVal < bePno) {
-        els.kpiPno.classList.add("roas-high");
-        if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = `Bod zvratu: ${bePno.toFixed(1)} % — v zisku`;
+        kpiPnoEl.classList.add("roas-high");
+        if (kpiPnoMetaEl) kpiPnoMetaEl.textContent = `Bod zvratu: ${bePno.toFixed(1)} % — v zisku`;
       } else {
-        els.kpiPno.classList.add("roas-low");
-        if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = `Bod zvratu: ${bePno.toFixed(1)} % — nad bodem zvratu`;
+        kpiPnoEl.classList.add("roas-low");
+        if (kpiPnoMetaEl) kpiPnoMetaEl.textContent = `Bod zvratu: ${bePno.toFixed(1)} % — nad bodem zvratu`;
       }
     } else {
-      if (els.kpiPnoMeta) els.kpiPnoMeta.textContent = bePno > 0 ? `Bod zvratu: ${bePno.toFixed(1)} %` : "";
+      if (kpiPnoMetaEl) kpiPnoMetaEl.textContent = bePno > 0 ? `Bod zvratu: ${bePno.toFixed(1)} %` : "";
     }
-    els.kpiPno.textContent = pnoVal > 0 ? `${pnoVal.toFixed(1)} %` : "—";
+    kpiPnoEl.textContent = pnoVal > 0 ? `${pnoVal.toFixed(1)} %` : "—";
   }
 
   const trustEl = els.kpiTrustMicrocopy || document.getElementById("kpiTrustMicrocopy");
