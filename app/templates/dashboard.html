@@ -6,8 +6,8 @@
     <title>Marketingový přehled</title>
     <link rel="stylesheet" href="/static/styles.css?v=2" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="/static/common.js?v=3"></script>
-    <script defer src="/static/dashboard.js?v=3"></script>
+    <script defer src="/static/common.js?v=4"></script>
+    <script defer src="/static/dashboard.js?v=4"></script>
   </head>
   <body>
     <header class="topbar">
@@ -236,29 +236,5 @@
       <p class="dashboard-footnote">Přehled počítáme z nahraných dat</p>
     </main>
 
-    <script>
-      (function () {
-        var params = new URLSearchParams(window.location.search);
-        if (params.get("from") !== "onboarding") return;
-        var hint = document.getElementById("onboardingMarginHint");
-        if (!hint) return;
-        hint.classList.remove("hidden");
-        // Scroll to margin bar after a short delay so dashboard loads first
-        setTimeout(function () {
-          var marginBar = document.querySelector(".margin-bar");
-          if (marginBar) marginBar.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 1200);
-        var dismissBtn = document.getElementById("onboardingMarginDismiss");
-        if (dismissBtn) {
-          dismissBtn.addEventListener("click", function () {
-            hint.classList.add("hidden");
-            // Clean up URL without reload
-            var url = new URL(window.location.href);
-            url.searchParams.delete("from");
-            window.history.replaceState({}, "", url.toString());
-          });
-        }
-      })();
-    </script>
   </body>
 </html>

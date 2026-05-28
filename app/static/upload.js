@@ -534,3 +534,50 @@
 
   init();
 })();
+
+/* ── Onboarding stepper (?onboarding=1) ───────────────────
+ * Moved from upload.html inline <script> to avoid CSP
+ * script-src violation (inline scripts not allowed).        */
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get("onboarding") !== "1") return;
+
+  var stepper = document.getElementById("onboardingStepper");
+  if (!stepper) return;
+  stepper.classList.remove("hidden");
+
+  var currentStep = 1;
+
+  function setStep(n) {
+    currentStep = n;
+    var label = document.getElementById("stepperLabel");
+    if (label) label.textContent = "Krok " + n + " ze 3";
+    for (var i = 1; i <= 3; i++) {
+      var ind = document.getElementById("stepIndicator" + i);
+      var cnt = document.getElementById("stepContent" + i);
+      if (ind) {
+        ind.classList.toggle("is-active", i === n);
+        ind.classList.toggle("is-done", i < n);
+      }
+      if (cnt) cnt.classList.toggle("hidden", i !== n);
+    }
+    stepper.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  setStep(1);
+
+  var next1 = document.getElementById("stepperNext1");
+  if (next1) {
+    next1.addEventListener("click", function () { setStep(2); });
+  }
+
+  var successEl = document.getElementById("uploadSuccess");
+  if (successEl && window.MutationObserver) {
+    var obs = new MutationObserver(function () {
+      if (!successEl.classList.contains("hidden") && currentStep === 2) {
+        setStep(3);
+      }
+    });
+    obs.observe(successEl, { attributes: true, attributeFilter: ["class"] });
+  }
+})();

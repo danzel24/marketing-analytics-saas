@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Nahrát sjednocený CSV soubor — Marketingový přehled</title>
     <link rel="stylesheet" href="/static/styles.css?v=2" />
-    <script defer src="/static/common.js"></script>
-    <script defer src="/static/upload.js"></script>
+    <script defer src="/static/common.js?v=4"></script>
+    <script defer src="/static/upload.js?v=1"></script>
   </head>
   <body class="auth-page">
     <header class="topbar topbar--auth">
@@ -147,53 +147,5 @@
         </div>
       </div>
     </main>
-  <script>
-    (function () {
-      var params = new URLSearchParams(window.location.search);
-      if (params.get("onboarding") !== "1") return;
-
-      var stepper = document.getElementById("onboardingStepper");
-      if (!stepper) return;
-      stepper.classList.remove("hidden");
-
-      var currentStep = 1;
-
-      function setStep(n) {
-        currentStep = n;
-        var label = document.getElementById("stepperLabel");
-        if (label) label.textContent = "Krok " + n + " ze 3";
-
-        for (var i = 1; i <= 3; i++) {
-          var ind = document.getElementById("stepIndicator" + i);
-          var cnt = document.getElementById("stepContent" + i);
-          if (ind) {
-            ind.classList.toggle("is-active", i === n);
-            ind.classList.toggle("is-done", i < n);
-          }
-          if (cnt) cnt.classList.toggle("hidden", i !== n);
-        }
-
-        stepper.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-
-      setStep(1);
-
-      var next1 = document.getElementById("stepperNext1");
-      if (next1) {
-        next1.addEventListener("click", function () { setStep(2); });
-      }
-
-      // Advance to step 3 when upload success banner appears
-      var successEl = document.getElementById("uploadSuccess");
-      if (successEl && window.MutationObserver) {
-        var obs = new MutationObserver(function () {
-          if (!successEl.classList.contains("hidden") && currentStep === 2) {
-            setStep(3);
-          }
-        });
-        obs.observe(successEl, { attributes: true, attributeFilter: ["class"] });
-      }
-    })();
-  </script>
   </body>
 </html>

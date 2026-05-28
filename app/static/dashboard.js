@@ -1632,3 +1632,27 @@ window.addEventListener("load", async () => {
   await loadCurrentUser();
   loadDashboard();
 });
+
+/* ── Onboarding: margin hint (?from=onboarding) ────────────
+ * Moved from dashboard.html inline <script> to avoid CSP
+ * script-src violation (inline scripts not allowed).          */
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get("from") !== "onboarding") return;
+  var hint = document.getElementById("onboardingMarginHint");
+  if (!hint) return;
+  hint.classList.remove("hidden");
+  setTimeout(function () {
+    var marginBar = document.querySelector(".margin-bar");
+    if (marginBar) marginBar.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 1200);
+  var dismissBtn = document.getElementById("onboardingMarginDismiss");
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", function () {
+      hint.classList.add("hidden");
+      var url = new URL(window.location.href);
+      url.searchParams.delete("from");
+      window.history.replaceState({}, "", url.toString());
+    });
+  }
+})();
