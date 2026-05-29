@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 from starlette.responses import Response
@@ -529,7 +529,7 @@ def create_app() -> FastAPI:
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data:; "
         "font-src 'self'; "
-        "connect-src 'self'; "
+        "connect-src 'self' https://cdn.jsdelivr.net; "
         "frame-ancestors 'none'; "
         "form-action 'self'; "
         "base-uri 'self'; "
@@ -615,6 +615,10 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> FileResponse:
+        return FileResponse(str(STATIC_DIR / "favicon.svg"), media_type="image/svg+xml")
 
     @app.get("/api")
     def api_root() -> dict[str, Any]:

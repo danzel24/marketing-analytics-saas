@@ -16,4 +16,4 @@ email-validator==2.3.0
 python-multipart==0.0.22
 tzdata==2026.2
 pytest==9.0.2
-sentry-sdk[fastapi]
+sentry-sdk[fastapi]>=2.0.0,<3.0.0
